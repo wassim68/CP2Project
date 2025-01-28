@@ -26,10 +26,11 @@ class Skills(models.Model):
     name=models.TextField()
 
 class Student(models.Model):
+    education=models.CharField(max_length=50,null=True)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
-    Skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"))
-    rating=models.IntegerField()
+    Skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"),null=True)
+    rating=models.IntegerField(default=5)
 
 
 class MyAccountManager(BaseUserManager):
@@ -74,7 +75,7 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     objects = MyAccountManager()
     USERNAME_FIELD = 'name'
-    REQUIRED_FIELDS = ['email']
+    REQUIRED_FIELDS = ['email','type']
     def __str__(self):      
         return self.name
     def has_perm(self, perm, obj=None):
