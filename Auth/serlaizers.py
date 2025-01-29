@@ -5,7 +5,7 @@ from .models import User, company, Skills, Student
 class CompanySerializer(serializers.ModelSerializer):
   class Meta:
     model = company
-    fields = '__all__'
+    fields = ['category']
 
 class SkillsSerializer(serializers.ModelSerializer):
   class Meta:
@@ -16,7 +16,7 @@ class StudentSerializer(serializers.ModelSerializer):
   Skills = SkillsSerializer(many=True, read_only=True)
   class Meta:
     model = Student
-    fields = '__all__'
+    fields = ['education','gendre','Skills','rating']
 
 class UserCompanySerializer(serializers.ModelSerializer):
   company = CompanySerializer()

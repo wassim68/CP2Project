@@ -73,8 +73,8 @@ class User(AbstractBaseUser,PermissionsMixin):
     email = models.EmailField(max_length=100, unique=True)
     password = models.CharField(max_length=100)
     Number=models.IntegerField(null=True)
-    company=models.OneToOneField("Auth.company", verbose_name=("company"), on_delete=models.CASCADE,null=1)
-    Student=models.OneToOneField("Auth.Student", verbose_name=("Students"), on_delete=models.CASCADE,null=1)
+    company=models.OneToOneField("Auth.company", verbose_name=("company"),null=True,on_delete=models.CASCADE)
+    Student=models.OneToOneField("Auth.Student", verbose_name=("Students"), null=True,on_delete=models.CASCADE)
     profilepic=models.ImageField(upload_to='images', height_field=None, width_field=None, max_length=None,null=True)
     type=models.CharField( choices=types,max_length=50)
     date_joined = models.DateField(auto_now_add=True)
@@ -85,7 +85,7 @@ class User(AbstractBaseUser,PermissionsMixin):
 
     objects = MyAccountManager()
     USERNAME_FIELD = 'name'
-    REQUIRED_FIELDS = ['email','type']
+    REQUIRED_FIELDS = ['email']
     def __str__(self):      
         return self.name
     def has_perm(self, perm, obj=None):

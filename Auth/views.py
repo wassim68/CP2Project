@@ -6,7 +6,7 @@ from . import serlaizers
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 # Create your views here.
-class Login(APIView):
+class Signup(APIView):
   def post(self,request):
     data=request.data
     type=data.get('type')
@@ -20,9 +20,9 @@ class Login(APIView):
          access_token = refresh.access_token
          return Response({'user':ser.data,'refresh_token':str(refresh),'access_token':str(access_token)})
        return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
-    if type.lower()=='company':
-      ser=serlaizers.UserCompanySerializer(data=data)
-      if ser.is_valid():
+      if type.lower()=='company':
+       ser=serlaizers.UserCompanySerializer(data=data)
+       if ser.is_valid():
         ser.save(type='Company')
         user=models.User.objects.get(id=ser.data['id'])
         refresh=RefreshToken.for_user(user)
@@ -31,7 +31,7 @@ class Login(APIView):
       return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)  
     return Response({'add type'},status=status.HTTP_400_BAD_REQUEST)
     
-class Signup(APIView):
+class Login(APIView):
   def post(self,request):
     name=request.data.get('name')
     password=request.data.get('password')
@@ -52,11 +52,14 @@ class Signup(APIView):
 class Deleteacc(APIView):
   permission_classes=[IsAuthenticated]
   def delete(self,request):
-    user=request.user
+    user=models.User.objects.get(id=request.user.id)
     password=request.data.get('password')
     if password:
       if user.check_password(password):
-        pass
+        user.delete()
+        return Response({'user deleted succefuly'})
+      return Response({'incorect password'},status=status.HTTP_401_UNAUTHORIZED)
+    return Response({'add password'},status=status.HTTP_400_BAD_REQUEST)
 
 class ForgotPass(APIView):
   def post(self,request):
