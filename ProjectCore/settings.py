@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
-
+from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -40,8 +40,19 @@ INSTALLED_APPS = [
     'Auth',
     'post',
     'rest_framework',
-
+    'rest_framework_simplejwt',
 ]
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Use JWT for authentication
+    ),
+}
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Access token lifetime
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Refresh token lifetime
+    'ROTATE_REFRESH_TOKENS': True,  # Optionally rotate refresh tokens on refresh
+    'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old tokens after rotation (requires token_blacklist)
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
