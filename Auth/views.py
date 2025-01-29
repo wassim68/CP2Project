@@ -8,10 +8,23 @@ class Login(APIView):
   def post(self,request):
     data=request.data
     type=data.get('type')
-    ser=serlaizers.UserCompanySerializer(data=data)
-    if ser.is_valid():
-      ser.save()
-      return Response(ser.data)
-    return Response(ser.errors,status=status.HTTP_406_NOT_ACCEPTABLE)
+    if type.lower()=='student':
+      ser=serlaizers.UserStudentSerializer(data=data)
+    if type.lower()=='company':
+      ser=serlaizers.UserCompanySerializer(data=data)
+      if ser.is_valid():
+        ser.save(type='Company')
+        return Response(ser.data)
+      return Response(ser.errors)  
     
-   
+class Signup(APIView):
+  def post(self,request):
+    pass
+
+class Deleteacc(APIView):
+  def delete(self,request):
+    pass
+
+class ForgotPass(APIView):
+  def post(self,request):
+    pass
