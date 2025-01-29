@@ -19,7 +19,7 @@ class Signup(APIView):
          user=models.User.objects.get(id=ser.data['id'])
          refresh=RefreshToken.for_user(user)
          access_token = refresh.access_token
-         return Response({'user':ser.data,'refresh_token':str(refresh),'access_token':str(access_token)})
+         return Response({'user':ser.data,'refresh':str(refresh),'access':str(access_token)})
        return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
       if type.lower()=='company':
        ser=serlaizers.UserCompanySerializer(data=data)
@@ -28,7 +28,7 @@ class Signup(APIView):
         user=models.User.objects.get(id=ser.data['id'])
         refresh=RefreshToken.for_user(user)
         access_token = refresh.access_token
-        return Response({'user':ser.data,'refresh_token':str(refresh),'access_token':str(access_token)})
+        return Response({'user':ser.data,'refresh':str(refresh),'access':str(access_token)})
       return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)  
     return Response({'add type'},status=status.HTTP_400_BAD_REQUEST)
     
@@ -50,7 +50,7 @@ class Login(APIView):
           ser=serlaizers.UserStudentSerializer(user)
         refresh=RefreshToken.for_user(user)
         access_token = refresh.access_token
-        return Response({'user':ser.data,'refresh_token':str(refresh),'access_token':str(access_token)})
+        return Response({'user':ser.data,'refresh':str(refresh),'access':str(access_token)})
        return Response({'Password inccorect'},status=status.HTTP_401_UNAUTHORIZED)
       return  Response({'Email or password are requeird'},status=status.HTTP_400_BAD_REQUEST)
     except models.User.DoesNotExist:
@@ -67,14 +67,26 @@ class Deleteacc(APIView):
         return Response({'user deleted succefuly'})
       return Response({'incorect password'},status=status.HTTP_401_UNAUTHORIZED)
     return Response({'add password'},status=status.HTTP_400_BAD_REQUEST)
+  def post(self,request):
+    user=request.user
+    data=request.data
+    if user.company :
+      ser=serlaizers.UserCompanySerializer(user,data=data,partial=True)
+      if ser.is_valid():
+       ser.save()
+       return Response(ser.data)
+      return Response(ser.errors)
+    elif user.student:
+      ser=serlaizers.UserStudentSerializer(user,data=data,partial=True)
+      if ser.is_valid():
+       ser.save()
+       return Response(ser.data)
+      return Response(ser.errors)
 
 class ForgotPass(APIView):
   permission_classes=[IsAuthenticated]
   def post(self,request):
     pass
 
-class updateaccount(APIView):
-  permission_classes=[IsAuthenticated]
-  def post(self,request):
-    pass
+
 

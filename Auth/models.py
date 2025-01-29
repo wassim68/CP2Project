@@ -34,7 +34,7 @@ class Student(models.Model):
     education=models.CharField(max_length=50)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
-    Skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"))
+    skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"))
     rating=models.IntegerField(default=5)
     REQUIRED_FIELDS = ['education']
 
@@ -69,12 +69,13 @@ class MyAccountManager(BaseUserManager):
         return user
 
 class User(AbstractBaseUser,PermissionsMixin):
+    place=models.CharField(max_length=50,null=True)
     name = models.CharField(max_length=100, unique=True)
     email = models.EmailField(max_length=100, unique=True)
     password = models.CharField(max_length=100)
-    Number=models.IntegerField(null=True)
+    number=models.IntegerField(null=True)
     company=models.OneToOneField("company", verbose_name=("company"),null=True,on_delete=models.SET_NULL)
-    Student=models.OneToOneField("Student", verbose_name=("Students"), null=True,on_delete=models.SET_NULL)
+    student=models.OneToOneField("Student", verbose_name=("Students"), null=True,on_delete=models.SET_NULL)
     profilepic=models.ImageField(upload_to='images', height_field=None, width_field=None, max_length=None,null=True)
     type=models.CharField( choices=types,max_length=50)
     date_joined = models.DateField(auto_now_add=True)

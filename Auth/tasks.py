@@ -1,6 +1,6 @@
 from ProjectCore import settings
 from django.core.mail import send_mail
-def sendemail(message,subject,receipnt):
+def sendemail(message,subject,receipnt,title):
      subject = subject 
      html_message = f"""
 <!DOCTYPE html>
@@ -79,4 +79,4 @@ def sendemail(message,subject,receipnt):
 """
      from_email = settings.DEFAULT_FROM_EMAIL
      recipient_list = receipnt
-     send_mail(subject, 'ho', from_email, recipient_list, html_message=html_message)
+     send_mail(subject, title, from_email, recipient_list, html_message=html_message)
