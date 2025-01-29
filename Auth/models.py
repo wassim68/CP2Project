@@ -1,5 +1,4 @@
 from django.db import models
-
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,PermissionsMixin
 types=[
     ('Student','Student'),
@@ -22,6 +21,7 @@ Gendre=[
 ]
 class company(models.Model):
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
+    opportunity=models.ForeignKey('post.Opportunity', verbose_name=("oppertune"), on_delete=models.CASCADE)
 
 class Skills(models.Model):
     name=models.TextField()
@@ -35,23 +35,27 @@ class Student(models.Model):
 
 
 class MyAccountManager(BaseUserManager):
-    def create_user(self,email,name,password=None):
+    def create_user(self,email,name,type,password=None):
         if not email:
             raise ValueError("Users must have an email address")
         if not name:
             raise ValueError("Users must have a username")
+        if not type:
+            raise ValueError("User must defined the type")
         user = self.model(
             email = self.normalize_email(email),
             name = name,
+            type=type
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
-    def create_superuser(self,email,name,password):
+    def create_superuser(self,email,name,password,type):
         user = self.create_user(
             email = self.normalize_email(email),
             password = password,
             name = name,
+            type=type
         )
         user.is_admin = True
         user.is_staff = True
