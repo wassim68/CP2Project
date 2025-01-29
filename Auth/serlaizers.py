@@ -13,10 +13,10 @@ class SkillsSerializer(serializers.ModelSerializer):
     fields = ['name']
 
 class StudentSerializer(serializers.ModelSerializer):
-  Skills = SkillsSerializer(many=True, read_only=True)
+  skills = SkillsSerializer(many=True, read_only=True)
   class Meta:
     model = Student
-    fields = ['education','gendre','Skills','rating']
+    fields = ['education','gendre','skills','rating']
 
 class UserCompanySerializer(serializers.ModelSerializer):
   company = CompanySerializer()
@@ -24,7 +24,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
   type=serializers.CharField(read_only=True)
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'Number', 'company','type','profilepic','date_joined','password']
+    fields = ['id','name', 'email', 'number', 'company','type','profilepic','date_joined','password']
   def create(self, validated_data):
         company_data = validated_data.pop('company', None)  
         validated_data['password'] = make_password(validated_data['password'])
@@ -36,18 +36,18 @@ class UserCompanySerializer(serializers.ModelSerializer):
 
         return user
 class UserStudentSerializer(serializers.ModelSerializer):
-  Student = StudentSerializer()
+  student = StudentSerializer()
   password=serializers.CharField(write_only=1)
   type=serializers.CharField(read_only=True)
-  def create(self, validated_data):
-        Student_data = validated_data.pop('Student', None)  
+  def create(self,validated_data):
+        Student_data = validated_data.pop('student', None)  
         validated_data['password'] = make_password(validated_data['password'])
         user = User.objects.create(**validated_data)
         if Student_data:
             student = Student.objects.create(**Student_data)
-            user.Student = student  
+            user.student = student  
             user.save()
         return user
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'Number', 'Student','type','profilepic','date_joined','password']
+    fields = ['id','name', 'email', 'number', 'student','type','profilepic','date_joined','password']
