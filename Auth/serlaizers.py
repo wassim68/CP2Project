@@ -17,6 +17,10 @@ class StudentSerializer(serializers.ModelSerializer):
   class Meta:
     model = Student
     fields = ['education','gendre','skills','rating']
+  def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['skills'] = [skill['name'] for skill in representation['skills']]
+        return representation
 
 class UserCompanySerializer(serializers.ModelSerializer):
   company = CompanySerializer()
@@ -33,8 +37,12 @@ class UserCompanySerializer(serializers.ModelSerializer):
             ompany = company.objects.create(**company_data)
             user.company = ompany  
             user.save()
-
         return user
+  def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        company_representation = representation.pop('company')
+        representation.update(company_representation)  # Merge company data into the main dictionary
+        return representation
 class UserStudentSerializer(serializers.ModelSerializer):
   student = StudentSerializer()
   password=serializers.CharField(write_only=1)
@@ -48,6 +56,11 @@ class UserStudentSerializer(serializers.ModelSerializer):
             user.student = student  
             user.save()
         return user
+  def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        company_representation = representation.pop('student')
+        representation.update(company_representation)  
+        return representation
   class Meta:
     model = User
     fields = ['id','name', 'email', 'number', 'student','type','profilepic','date_joined','password']
