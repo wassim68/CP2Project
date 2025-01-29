@@ -56,7 +56,7 @@ class Login(APIView):
     except models.User.DoesNotExist:
       return Response({'User Dosent exist'},status=status.HTTP_404_NOT_FOUND)
 
-class Deleteacc(APIView):
+class acc(APIView):
   permission_classes=[IsAuthenticated]
   def delete(self,request):
     user=models.User.objects.get(id=request.user.id)
@@ -87,6 +87,16 @@ class ForgotPass(APIView):
   permission_classes=[IsAuthenticated]
   def post(self,request):
     pass
+
+class getcompany(APIView):
+  permission_classes=[IsAuthenticated]
+  def get(self,request,id):
+    try:
+      company=models.User.objects.get(id=id)
+      ser=serlaizers.UserCompanySerializer(company)
+      return Response(ser.data)
+    except Exception :
+      return Response({'company dosent exist'},status=status.HTTP_404_NOT_FOUND)
 
 
 

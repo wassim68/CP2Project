@@ -5,5 +5,6 @@ urlpatterns = [
     path('Login',views.Login.as_view()),
     path('Signup',views.Signup.as_view()),
     path('Refresh',TokenRefreshView.as_view()),
-    path('user',views.Deleteacc.as_view()),
+    path('user',views.acc.as_view()),
+    path('company/<int:id>/',views.getcompany.as_view())
 ]
