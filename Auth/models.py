@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,PermissionsMixin
+from django.dispatch import receiver
+from django.db.models.signals import post_save
 types=[
     ('Student','Student'),
     ('Company','Company')
@@ -21,7 +23,8 @@ Gendre=[
 ]
 class company(models.Model):
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
-    opportunity=models.ForeignKey('post.Opportunity', verbose_name=("oppertune"), on_delete=models.CASCADE)
+    opportunity=models.ForeignKey('post.Opportunity', verbose_name=("oppertune"), on_delete=models.CASCADE,null=True)
+    REQUIRED_FIELDS = ['category']
 
 class Skills(models.Model):
     name=models.TextField()
@@ -30,7 +33,7 @@ class Student(models.Model):
     education=models.CharField(max_length=50,null=True)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
-    Skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"),null=True)
+    Skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"))
     rating=models.IntegerField(default=5)
 
 

@@ -4,7 +4,7 @@ from .models import User, company, Skills, Student
 class CompanySerializer(serializers.ModelSerializer):
   class Meta:
     model = company
-    fields = ['id','category']
+    fields = '__all__'
 
 class SkillsSerializer(serializers.ModelSerializer):
   class Meta:
@@ -19,13 +19,22 @@ class StudentSerializer(serializers.ModelSerializer):
     fields = '__all__'
 
 class UserCompanySerializer(serializers.ModelSerializer):
-  company = CompanySerializer(read_only=True)
+  company = CompanySerializer()
   type=serializers.CharField(read_only=True)
   class Meta:
     model = User
     fields = ['id','name', 'email', 'Number', 'company','type']
+  def create(self, validated_data):
+        company_data = validated_data.pop('company', None)  
+        user = User.objects.create(**validated_data)
+        if company_data:
+            ompany = company.objects.create(**company_data)
+            user.company = ompany  
+            user.save()
+
+        return user
 class UserStudentSerializer(serializers.ModelSerializer):
-  Student = StudentSerializer(read_only=True)
+  Student = StudentSerializer()
   type=serializers.CharField(read_only=True)
   class Meta:
     model = User
