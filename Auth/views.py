@@ -6,6 +6,8 @@ from . import serlaizers
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from . import tasks
+from numpy import random
+from django.core.cache import cache
 # Create your views here.
 class Signup(APIView):
   def post(self,request):
@@ -67,7 +69,7 @@ class acc(APIView):
         return Response({'user deleted succefuly'})
       return Response({'incorect password'},status=status.HTTP_401_UNAUTHORIZED)
     return Response({'add password'},status=status.HTTP_400_BAD_REQUEST)
-  def post(self,request):
+  def put(self,request):
     user=request.user
     data=request.data
     if user.company :
@@ -83,20 +85,84 @@ class acc(APIView):
        return Response(ser.data)
       return Response(ser.errors)
 
-class ForgotPass(APIView):
-  permission_classes=[IsAuthenticated]
-  def post(self,request):
-    pass
 
-class getcompany(APIView):
+
+class ForgotPass(APIView):
+  def post(self,request):
+    email=request.data.get('email')
+    name=request.data.get('name')
+    try:
+      if email:
+       user=models.User.objects.get(email=email)
+      elif name:
+       user=models.User.objects.get(name=name)
+      useremail=user.email
+      otp = f"{random.randint(0, 999999):06d}"
+      tasks.sendemail(
+    message=(
+        "You requested to reset your password. Please use the OTP below:<br><br>"
+        "<h2 style='color: #007bff; text-align: center;'>{}</h2><br>"
+        "This OTP is valid for only 5 minutes.<br><br>"
+        "If you didn't request this, please ignore this email.<br><br>"
+    ).format(otp),
+    subject="Reset Your Password",
+    receipnt=[useremail],
+    title="Reset Password",
+    user=user.name
+)
+      return Response({'otp':otp})
+    except models.User.DoesNotExist:
+      return Response({'user dosnet exist'},status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+class reset_password(APIView):
+  def put(self,request):
+    email=request.data.get('email')
+    name=request.data.get('name')
+    newpassword=request.data.get('password')
+
+    try:
+      if newpassword:
+         if email:
+           user=models.User.objects.get(email=email)
+         elif name:
+          user=models.User.objects.get(name=name)
+         if name or email:
+          if user.check_password(newpassword):
+            return Response({'pervieuos password'})
+          user.set_password(newpassword)
+          user.save()
+          tasks.sendemail(
+           message=(
+           "Your password has been successfully reset.<br><br>"
+           "If you made this change, you can ignore this email.<br><br>"
+            "If you did not request this change, please contact our support immediately.<br><br>"
+            ).format(user.name),
+            subject="Your Password Has Been Reset",
+            receipnt=[user.email],
+            title="Password Reset Successful",
+            user=user.name)
+          return Response({'password changed succefuly'})
+         return Response({'Email or name is requeird'},status=status.HTTP_406_NOT_ACCEPTABLE)
+      return Response({'password and otp are requeird'},status=status.HTTP_406_NOT_ACCEPTABLE)
+    except models.User.DoesNotExist:
+      return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
+    
+class getuser(APIView):
   permission_classes=[IsAuthenticated]
   def get(self,request,id):
     try:
-      company=models.User.objects.get(id=id)
-      ser=serlaizers.UserCompanySerializer(company)
+      user=models.User.objects.get(id=id)
+      if user.company:
+       ser=serlaizers.UserCompanySerializer(user)
+      elif user.student:
+        ser=serlaizers.UserStudentSerializer(user)
       return Response(ser.data)
     except Exception :
-      return Response({'company dosent exist'},status=status.HTTP_404_NOT_FOUND)
+      return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
+
 
 
 
