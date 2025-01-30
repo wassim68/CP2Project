@@ -2,3 +2,4 @@
 .dockerignore
 .venv
 *.code-workspace
+*.sqlite3
