@@ -24,7 +24,6 @@ Gendre=[
 ]
 class company(models.Model):
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
-    opportunity=models.ForeignKey('post.Opportunity', verbose_name=("oppertune"), on_delete=models.CASCADE,null=True)
     REQUIRED_FIELDS = ['category']
 
 class Skills(models.Model):
