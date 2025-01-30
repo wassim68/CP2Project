@@ -1,6 +1,0 @@
-.env
-.dockerignore
-.venv
-*.code-workspace
-*.sqlite3
-db.sqlite3
