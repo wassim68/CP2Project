@@ -1,5 +1,5 @@
 from django.db import models
-from Auth.models import Student,Skills,company
+from Auth.models import Student,Skills,company,User
 TYPES = [
     ('internship', 'Internship'),
     ('Problem', 'Problem'),
@@ -34,7 +34,7 @@ class Application(models.Model):
         return f"Application by {self.student} - Status: {self.status}"
 
 class Opportunity(models.Model):
-    company = models.ForeignKey(company,related_name='opportunity',on_delete=models.CASCADE,null=True)
+    company = models.ForeignKey(User,related_name='opportunity',on_delete=models.CASCADE,null=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
     Type = models.CharField(choices=TYPES, max_length=20)
@@ -48,7 +48,7 @@ class Opportunity(models.Model):
 
 class Team(models.Model):
     name = models.CharField(max_length=255)
-    students = models.ManyToManyField(Student, related_name='teams')
+    students = models.ManyToManyField(User, related_name='teams',null= True)
 
     def __str__(self):
         return self.name
