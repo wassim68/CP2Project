@@ -10,6 +10,7 @@ class team_serializer(serializers.ModelSerializer):
             'id',
             'name',
             'students',
+            'leader'
         ]
 
 class application_serializer(serializers.ModelSerializer):
