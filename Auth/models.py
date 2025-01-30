@@ -28,7 +28,7 @@ class company(models.Model):
     REQUIRED_FIELDS = ['category']
 
 class Skills(models.Model):
-    name=models.TextField()
+    name=models.TextField(unique=1)
     def __str__(self):
         return self.name
     
