@@ -6,5 +6,7 @@ urlpatterns = [
     path('Signup',views.Signup.as_view()),
     path('Refresh',TokenRefreshView.as_view()),
     path('user',views.acc.as_view()),
-    path('company/<int:id>/',views.getcompany.as_view())
+    path('otpemail',views.ForgotPass.as_view()),
+    path('user/<int:id>/',views.getuser.as_view()),
+    path('userpassword',views.reset_password.as_view()),
 ]

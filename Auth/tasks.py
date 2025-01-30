@@ -1,6 +1,6 @@
 from ProjectCore import settings
 from django.core.mail import send_mail
-def sendemail(message,subject,receipnt,title):
+def sendemail(message,subject,receipnt,title,user):
      subject = subject 
      html_message = f"""
 <!DOCTYPE html>
@@ -60,10 +60,10 @@ def sendemail(message,subject,receipnt,title):
 <body>
     <div class="email-container">
         <div class="email-header">
-            <h1>OPPORTUNITY!</h1>
+            <h1>APP NAME</h1>
         </div>
         <div class="email-body">
-            <p>Dear User,</p>
+            <p>Dear {user},</p>
             <p>{message}</p>
             <p>If you have any questions or need assistance, please feel free to reach out to our support team at <a href="mailto:bouroumanamoundher@gmail.com">support@gmail.com</a>.</p>
             <p>We look forward to serving you!</p>
@@ -80,3 +80,6 @@ def sendemail(message,subject,receipnt,title):
      from_email = settings.DEFAULT_FROM_EMAIL
      recipient_list = receipnt
      send_mail(subject, title, from_email, recipient_list, html_message=html_message)
+
+def send_otp():
+     pass
