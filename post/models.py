@@ -1,5 +1,5 @@
 from django.db import models
-from Auth.models import Student,Skills
+from Auth.models import Student,Skills,company
 TYPES = [
     ('internship', 'Internship'),
     ('Problem', 'Problem'),
@@ -34,6 +34,7 @@ class Application(models.Model):
         return f"Application by {self.student} - Status: {self.status}"
 
 class Opportunity(models.Model):
+    company = models.ForeignKey(company,related_name='opportunity',on_delete=models.CASCADE,null=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
     Type = models.CharField(choices=TYPES, max_length=20)
