@@ -3,5 +3,3 @@
 .venv
 *.code-workspace
 
-*.sqlite3
-
