@@ -1,5 +1,5 @@
 .env
-.dockerignore
+.*dockerignore
 .venv
 *.code-workspace
 
