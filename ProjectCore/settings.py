@@ -14,6 +14,10 @@ from pathlib import Path
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials
+cred = credentials.Certificate("cp-project-4a907-firebase-adminsdk-fbsvc-dd8a2069cd.json") 
+firebase_admin.initialize_app(cred)
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 

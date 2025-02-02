@@ -37,6 +37,7 @@ class Opportunity(models.Model):
     skills = models.ManyToManyField(Skills, verbose_name=("Skills"))
     status = models.CharField(choices=OPPORTUNITY_STATUS, max_length=15)
     applications = models.ManyToManyField(Application, related_name='opportunities')
+    daysleft= models.IntegerField(null=True)
 
     def __str__(self):
         return self.title

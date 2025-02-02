@@ -10,7 +10,7 @@ from numpy import random
 from django.core.cache import cache
 from post import models as md
 from post import serializer as sr
-# Create your views here.
+
 class Signup(APIView):
   def post(self,request):
     data=request.data
@@ -116,6 +116,15 @@ class ForgotPass(APIView):
     except models.User.DoesNotExist:
       return Response({'user dosnet exist'},status=status.HTTP_404_NOT_FOUND)
 
+class Fcm(APIView):
+  permission_classes=[IsAuthenticated]
+  def post(self,request):
+    user=request.user
+    ser=serlaizers.Fcmserlaizer(data=request.data)
+    if ser.is_valid():
+      ser.save()
+      return Response({'suceffuly'})
+    return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -124,7 +133,6 @@ class reset_password(APIView):
     email=request.data.get('email')
     name=request.data.get('name')
     newpassword=request.data.get('password')
-
     try:
       if newpassword:
          if email:

@@ -5,6 +5,7 @@ class Fcmserlaizer(serializers.ModelSerializer):
   class Meta:
     model=MCF
     fields=['token']
+
 class CompanySerializer(serializers.ModelSerializer):
   class Meta:
     model = company

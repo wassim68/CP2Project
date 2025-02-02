@@ -30,8 +30,8 @@ class Skills(models.Model):
         return self.name
 
 class MCF(models.Model):
-    user=models.OneToOneField("Auth.User", verbose_name=("user"), on_delete=models.CASCADE)
-    token=models.CharField(max_length=100)
+    user=models.ForeignKey("Auth.User", verbose_name=(""), on_delete=models.CASCADE)
+    token=models.CharField(max_length=500)
 
 class Student(models.Model):
     education=models.CharField(max_length=50)

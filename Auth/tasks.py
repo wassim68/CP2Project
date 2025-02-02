@@ -1,5 +1,23 @@
 from ProjectCore import settings
 from django.core.mail import send_mail
+from firebase_admin import messaging
+
+def send_fcm_notification(device_token, title, body):
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
+        token=device_token
+    )
+
+    try:
+        response = messaging.send(message)
+        print(f'Successfully sent message: {response}')
+        return True
+    except Exception as e:
+        print(f'Error sending message: {e}')
+        return False
 
 def sendemail(message,subject,receipnt,title,user):
      subject = subject 
