@@ -7,5 +7,5 @@ from .models import User
 def delete_related_objects(sender, instance, **kwargs):
     if instance.company:
         instance.company.delete()
-    if instance.Student:
-        instance.Student.delete()
+    if instance.student:
+        instance.student.delete()

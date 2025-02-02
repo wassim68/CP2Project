@@ -1,5 +1,6 @@
 from ProjectCore import settings
 from django.core.mail import send_mail
+
 def sendemail(message,subject,receipnt,title,user):
      subject = subject 
      html_message = f"""

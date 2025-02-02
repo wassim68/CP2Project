@@ -1,7 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,PermissionsMixin
-from django.dispatch import receiver
-from django.db.models.signals import post_save
 types=[
     ('Student','Student'),
     ('Company','Company'),
@@ -30,7 +28,10 @@ class Skills(models.Model):
     name=models.TextField(unique=1)
     def __str__(self):
         return self.name
-    
+
+class MCF(models.Model):
+    user=models.OneToOneField("Auth.User", verbose_name=("user"), on_delete=models.CASCADE)
+    token=models.CharField(max_length=100)
 
 class Student(models.Model):
     education=models.CharField(max_length=50)
@@ -38,6 +39,7 @@ class Student(models.Model):
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
     skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"))
     rating=models.IntegerField(default=5)
+    savedposts=models.ManyToManyField('post.Opportunity', verbose_name=("opportunity"))
     REQUIRED_FIELDS = ['education']
 
 
@@ -93,4 +95,9 @@ class User(AbstractBaseUser,PermissionsMixin):
         return self.name
     def has_perm(self, perm, obj=None):
      return self.is_superuser or super().has_perm(perm, obj)
+    
+class Notfications(models.Model):
+    user=models.ForeignKey("Auth.User", verbose_name=("user"), on_delete=models.CASCADE)
+    description=models.TextField()
+    time=models.TimeField(auto_now_add=True)
 

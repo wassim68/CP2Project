@@ -8,6 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from . import tasks
 from numpy import random
 from django.core.cache import cache
+from post import models as md
+from post import serializer as sr
 # Create your views here.
 class Signup(APIView):
   def post(self,request):
@@ -162,6 +164,44 @@ class getuser(APIView):
       return Response(ser.data)
     except Exception :
       return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
+
+class savedpost(APIView):
+  permission_classes=[IsAuthenticated]
+  def post(self,request,id):
+    user =request.user 
+    try:
+      if user.student:
+       post=md.Opportunity.objects.get(id=id)
+       student=user.student
+       student.savedposts.add(post)
+       student.save()
+       return Response({'saved succefluy'})
+      return Response({'you cant save post'},status=status.HTTP_400_BAD_REQUEST)
+    except Exception :
+      return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+  def delete(self,request,id):
+    user=request.user
+    try:
+      if user.student:
+        post=md.Opportunity.objects.get(id=id)
+        if not user.student.savedposts.filter(id=post.id).exists():
+          return Response({"item is'nt saved"})
+        user.student.savedposts.remove(post)
+        user.student.save()
+        return Response({'post removed succefuly'})
+    except Exception as e:
+      return Response({'eror':str(e)},status=status.HTTP_404_NOT_FOUND)
+
+class post(APIView):
+  permission_classes=[IsAuthenticated]
+  def get(self,request):
+    user=request.user
+    if user.student:
+     ser=sr.opportunity_serializer(user.student.savedposts,many=True)
+     return Response(ser.data)
+    return Response({'this type of user cant have a saved post'},status=status.HTTP_404_NOT_FOUND)
+
+
 
 
 

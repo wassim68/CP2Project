@@ -1,15 +1,10 @@
 from django.db import models
-from Auth.models import Student,Skills,company,User
+from Auth.models import Student,Skills,company,User,CATEGORY_CHOICES
 TYPES = [
     ('internship', 'Internship'),
     ('Problem', 'Problem'),
 ]
 
-CATEGORIES = [
-    ('engineering', 'Engineering'),
-    ('computer_science', 'Computer Science'),
-    ('business', 'Business'),
-]
 OPPORTUNITY_STATUS = [
     ('open', 'Open'),
     ('closed', 'Closed'),
@@ -25,10 +20,10 @@ APPLICATION_STATUS = [
 
 class Application(models.Model):
     proposal = models.TextField()
-    status = models.CharField(choices=APPLICATION_STATUS, max_length=20)
+    status = models.CharField(choices=APPLICATION_STATUS, max_length=20,default='submitted')
     approve = models.BooleanField(default=False)
-    team = models.ForeignKey('Team', related_name='applications', on_delete=models.CASCADE)
-    student = models.ForeignKey(Student, related_name='applications', on_delete=models.CASCADE)
+    team = models.ForeignKey('Team', related_name='applications', on_delete=models.CASCADE,null=1)
+    student = models.ForeignKey(User, related_name='applications', on_delete=models.CASCADE,null=1)
 
     def __str__(self):
         return f"Application by {self.student} - Status: {self.status}"
@@ -38,7 +33,7 @@ class Opportunity(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     Type = models.CharField(choices=TYPES, max_length=20)
-    category = models.CharField(choices=CATEGORIES, max_length=30)
+    category = models.CharField(choices=CATEGORY_CHOICES, max_length=30)
     skills = models.ManyToManyField(Skills, verbose_name=("Skills"))
     status = models.CharField(choices=OPPORTUNITY_STATUS, max_length=15)
     applications = models.ManyToManyField(Application, related_name='opportunities')
