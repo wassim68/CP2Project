@@ -14,6 +14,7 @@ class team_serializer(serializers.ModelSerializer):
         ]
 
 class application_serializer(serializers.ModelSerializer):
+    status=serializers.CharField(read_only=True)
     class Meta :
         model = Application
         fields = [

@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, company, Skills, Student
-
+from .models import User, company, Skills, Student,MCF
+class Fcmserlaizer(serializers.ModelSerializer):
+  class Meta:
+    model=MCF
+    fields=['token']
 class CompanySerializer(serializers.ModelSerializer):
   class Meta:
     model = company
@@ -37,6 +40,7 @@ class StudentSerializer(serializers.ModelSerializer):
         skills = Skills.objects.filter(name__in=skill_names)
         instance.skills.set(skills)
         return instance
+
 
 class UserCompanySerializer(serializers.ModelSerializer):
   company = CompanySerializer()

@@ -246,6 +246,30 @@ class team_managing(APIView):
             new_leader = team.students.first()
             team.leader = new_leader
             return Response({"details": f"left, ownership changed to name:{new_leader.name} , id:{new_leader.id}"}, status=status.HTTP_200_OK)
-
-
         return Response({"details" : "left"},status=status.HTTP_200_OK) 
+
+class applications(APIView):
+    permission_classes=[IsAuthenticated]
+    def post(self,request,id):
+        user=request.user 
+        data=request.data
+        team=data.pop('team',None)
+        try:
+         post=Opportunity.objects.get(id=id)
+         if post.status =='open':
+             if team:
+                 team=Team.objects.get(id=id)
+             else :
+                if post.applications.filter(student=user).exists():
+                    return Response({"You have already applied for this opportunity"}, status=status.HTTP_400_BAD_REQUEST) 
+                ser=serializer.application_serializer(data=data)
+                if ser.is_valid():
+                    ser.save(student=user,approve=True)
+                    post.applications.add(ser.data['id'])
+                    return Response(ser.data)
+                return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
+         return Response({'the opportunity is closed'},status=status.HTTP_226_IM_USED)
+        except Team.DoesNotExist:
+            return Response({"team does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+        except Opportunity.DoesNotExist:
+            return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)

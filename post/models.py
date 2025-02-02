@@ -20,10 +20,10 @@ APPLICATION_STATUS = [
 
 class Application(models.Model):
     proposal = models.TextField()
-    status = models.CharField(choices=APPLICATION_STATUS, max_length=20)
+    status = models.CharField(choices=APPLICATION_STATUS, max_length=20,default='submitted')
     approve = models.BooleanField(default=False)
-    team = models.ForeignKey('Team', related_name='applications', on_delete=models.CASCADE)
-    student = models.ForeignKey(Student, related_name='applications', on_delete=models.CASCADE)
+    team = models.ForeignKey('Team', related_name='applications', on_delete=models.CASCADE,null=1)
+    student = models.ForeignKey(User, related_name='applications', on_delete=models.CASCADE,null=1)
 
     def __str__(self):
         return f"Application by {self.student} - Status: {self.status}"

@@ -28,7 +28,10 @@ class Skills(models.Model):
     name=models.TextField(unique=1)
     def __str__(self):
         return self.name
-    
+
+class MCF(models.Model):
+    user=models.OneToOneField("Auth.User", verbose_name=("user"), on_delete=models.CASCADE)
+    token=models.CharField(max_length=100)
 
 class Student(models.Model):
     education=models.CharField(max_length=50)
