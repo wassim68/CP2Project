@@ -9,6 +9,8 @@ from post import serializer
 from Auth.models import User,company,Student
 from Auth.serlaizers import UserStudentSerializer
 from itertools import chain
+from Auth import permissions
+from django.db.models import Q
 
 class opportunity_crud(APIView):
     permission_classes = [IsAuthenticated]
@@ -249,7 +251,7 @@ class team_managing(APIView):
         return Response({"details" : "left"},status=status.HTTP_200_OK) 
 
 class applications(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,permissions.IsStudent]
     def post(self,request,id):
         user=request.user 
         data=request.data
@@ -273,3 +275,24 @@ class applications(APIView):
             return Response({"team does'nt exist"},status=status.HTTP_404_NOT_FOUND)
         except Opportunity.DoesNotExist:
             return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+        
+class application_crud(APIView):
+    permission_classes=[IsAuthenticated,permissions.IsStudent]
+    def delete(self,request):
+        user=request.user
+        try:
+            app=Application.objects.get(student=user)
+            app.delete()
+            return Response({'item deleted'})
+        except Application.DoesNotExist:
+            return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+    def get(self,request):
+        user=request.user
+        try:
+            app=Application.objects.filter(Q(student=user))
+            post=Opportunity.objects.filter(applications__in=app)
+            ser=serializer.opportunity_serializer(post,many=True)
+            se=serializer.application_serializer(app,many=True)
+            return Response({'post':ser.data,'application':se.data})
+        except Exception as e:
+            return Response(e,status=status.HTTP_404_NOT_FOUND)

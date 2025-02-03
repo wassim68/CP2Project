@@ -11,5 +11,5 @@ urlpatterns = [
     path('userpassword',views.reset_password.as_view()),
     path('post/<int:id>/',views.savedpost.as_view()),
     path('post',views.post.as_view()),
-    path('',views.Fcm.as_view())
+    path('Fcm',views.Fcm.as_view())
 ]

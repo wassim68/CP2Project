@@ -1,7 +1,9 @@
 from ProjectCore import settings
 from django.core.mail import send_mail
 from firebase_admin import messaging
+from celery import shared_task
 
+@shared_task
 def send_fcm_notification(device_token, title, body):
     message = messaging.Message(
         notification=messaging.Notification(
@@ -10,7 +12,6 @@ def send_fcm_notification(device_token, title, body):
         ),
         token=device_token
     )
-
     try:
         response = messaging.send(message)
         print(f'Successfully sent message: {response}')
@@ -18,7 +19,7 @@ def send_fcm_notification(device_token, title, body):
     except Exception as e:
         print(f'Error sending message: {e}')
         return False
-
+@shared_task
 def sendemail(message,subject,receipnt,title,user):
      subject = subject 
      html_message = f"""
