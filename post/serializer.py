@@ -40,5 +40,6 @@ class opportunity_serializer(serializers.ModelSerializer):
             'Type',
             'category',
             'skills',
+            'daysleft'
         ]
         

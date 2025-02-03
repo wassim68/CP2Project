@@ -5,12 +5,14 @@ from . import models
 from . import serlaizers
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
+from . import permissions
 from . import tasks
 from numpy import random
 from django.core.cache import cache
 from post import models as md
 from post import serializer as sr
-# Create your views here.
+from django.contrib.auth.models import Permission
+
 class Signup(APIView):
   def post(self,request):
     data=request.data
@@ -48,10 +50,10 @@ class Login(APIView):
        user=models.User.objects.get(email=email)
       if name or email:
        if user.check_password(password):
-        if user.company:
+        if user.has_perm('Auth.company'):
           ser=serlaizers.UserCompanySerializer(user)
         else:
-          ser=serlaizers.UserStudentSerializer(user)
+         ser=serlaizers.UserStudentSerializer(user)
         refresh=RefreshToken.for_user(user)
         access_token = refresh.access_token
         return Response({'user':ser.data,'refresh':str(refresh),'access':str(access_token)})
@@ -100,7 +102,7 @@ class ForgotPass(APIView):
        user=models.User.objects.get(name=name)
       useremail=user.email
       otp = f"{random.randint(0, 999999):06d}"
-      tasks.sendemail(
+      tasks.sendemail.delay(
     message=(
         "You requested to reset your password. Please use the OTP below:<br><br>"
         "<h2 style='color: #007bff; text-align: center;'>{}</h2><br>"
@@ -116,6 +118,15 @@ class ForgotPass(APIView):
     except models.User.DoesNotExist:
       return Response({'user dosnet exist'},status=status.HTTP_404_NOT_FOUND)
 
+class Fcm(APIView):
+  permission_classes=[IsAuthenticated]
+  def post(self,request):
+    user=request.user
+    ser=serlaizers.Fcmserlaizer(data=request.data)
+    if ser.is_valid():
+      ser.save()
+      return Response({'suceffuly'})
+    return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -124,7 +135,6 @@ class reset_password(APIView):
     email=request.data.get('email')
     name=request.data.get('name')
     newpassword=request.data.get('password')
-
     try:
       if newpassword:
          if email:
@@ -136,7 +146,7 @@ class reset_password(APIView):
             return Response({'pervieuos password'})
           user.set_password(newpassword)
           user.save()
-          tasks.sendemail(
+          tasks.sendemail.delay(
            message=(
            "Your password has been successfully reset.<br><br>"
            "If you made this change, you can ignore this email.<br><br>"
@@ -166,23 +176,20 @@ class getuser(APIView):
       return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
 
 class savedpost(APIView):
-  permission_classes=[IsAuthenticated]
+  permission_classes=[IsAuthenticated,permissions.IsStudent]
   def post(self,request,id):
     user =request.user 
     try:
-      if user.student:
        post=md.Opportunity.objects.get(id=id)
        student=user.student
        student.savedposts.add(post)
        student.save()
        return Response({'saved succefluy'})
-      return Response({'you cant save post'},status=status.HTTP_400_BAD_REQUEST)
     except Exception :
       return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
   def delete(self,request,id):
     user=request.user
     try:
-      if user.student:
         post=md.Opportunity.objects.get(id=id)
         if not user.student.savedposts.filter(id=post.id).exists():
           return Response({"item is'nt saved"})
@@ -193,7 +200,7 @@ class savedpost(APIView):
       return Response({'eror':str(e)},status=status.HTTP_404_NOT_FOUND)
 
 class post(APIView):
-  permission_classes=[IsAuthenticated]
+  permission_classes=[IsAuthenticated,permissions.IsStudent]
   def get(self,request):
     user=request.user
     if user.student:
