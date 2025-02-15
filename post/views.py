@@ -6,15 +6,17 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from post.models import Application,Opportunity,Team
 from post import serializer
+from . import models
 from Auth.models import User,company,Student
 from Auth.serlaizers import UserStudentSerializer
 from itertools import chain
 from Auth import permissions
 from django.db.models import Q
+from django.views.decorators.cache import cache_page
 
 class opportunity_crud(APIView):
     permission_classes = [IsAuthenticated]
-
+    @cache_page(60*5)
     def get(self,request,*args, **kwargs):
         user = request.user
         if not user.type.lower() == 'company':
@@ -276,16 +278,19 @@ class applications(APIView):
         except Opportunity.DoesNotExist:
             return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
         
-class application_crud(APIView):
+class deleteapplication(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
-    def delete(self,request):
+    def delete(self,request,id):
         user=request.user
         try:
-            app=Application.objects.get(student=user)
+            app=Application.objects.get(student=user,opportunities__id=id)
             app.delete()
             return Response({'item deleted'})
         except Application.DoesNotExist:
             return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+        
+class application_crud(APIView):
+    permission_classes=[IsAuthenticated,permissions.IsStudent]
     def get(self,request):
         user=request.user
         try:
@@ -296,3 +301,20 @@ class application_crud(APIView):
             return Response({'post':ser.data,'application':se.data})
         except Exception as e:
             return Response(e,status=status.HTTP_404_NOT_FOUND)
+
+
+class company_app_management(APIView):
+    permission_classes=[IsAuthenticated,permissions.IsCompany]
+    def get(self,request,id):
+        user=request.user
+        try:
+            post=Opportunity.objects.filter(company=user,id=id)
+            app=models.Application.objects.filter(opportunities__in=post)
+            ser=serializer.application_serializer(app,many=True)
+            return Response(ser.data)
+        except Exception as e:
+            return Response(e,status=status.HTTP_404_NOT_FOUND)
+class choose_app(APIView):
+    permission_classes=[IsAuthenticated,permissions.IsCompany]
+    def post(self,request,id):
+        user=request.user 

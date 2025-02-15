@@ -12,6 +12,8 @@ from django.core.cache import cache
 from post import models as md
 from post import serializer as sr
 from django.contrib.auth.models import Permission
+from django.core.cache import cache
+from drf_yasg.utils import swagger_auto_schema
 
 class Signup(APIView):
   def post(self,request):
@@ -203,10 +205,9 @@ class post(APIView):
   permission_classes=[IsAuthenticated,permissions.IsStudent]
   def get(self,request):
     user=request.user
-    if user.student:
-     ser=sr.opportunity_serializer(user.student.savedposts,many=True)
-     return Response(ser.data)
-    return Response({'this type of user cant have a saved post'},status=status.HTTP_404_NOT_FOUND)
+    ser=sr.opportunity_serializer(user.student.savedposts,many=True)
+    return Response(ser.data)
+
 
 
 
