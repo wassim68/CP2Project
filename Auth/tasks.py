@@ -83,7 +83,6 @@ def sendemail(message,subject,receipnt,title,user):
             <h1>APP NAME</h1>
         </div>
         <div class="email-body">
-            <p>Dear {user},</p>
             <p>{message}</p>
             <p>If you have any questions or need assistance, please feel free to reach out to our support team at <a href="mailto:bouroumanamoundher@gmail.com">support@gmail.com</a>.</p>
             <p>We look forward to serving you!</p>

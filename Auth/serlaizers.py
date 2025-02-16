@@ -44,7 +44,7 @@ class StudentSerializer(serializers.ModelSerializer):
 
 
 class UserCompanySerializer(serializers.ModelSerializer):
-  company = CompanySerializer()
+  company = CompanySerializer(required=False)
   password=serializers.CharField(write_only=1)
   type=serializers.CharField(read_only=True)
   class Meta:
@@ -81,7 +81,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
         representation.update(company_representation)  # Merge company data into the main dictionary
         return representation
 class UserStudentSerializer(serializers.ModelSerializer):
-  student = StudentSerializer()
+  student = StudentSerializer(required=False)
   password=serializers.CharField(write_only=1)
   type=serializers.CharField(read_only=True)
   def create(self,validated_data):

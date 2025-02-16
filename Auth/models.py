@@ -21,7 +21,7 @@ Gendre=[
     ('P','Prefer not to say')
 ]
 class company(models.Model):
-    category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
+    category=models.CharField( max_length=50,choices=CATEGORY_CHOICES,null=True)
     REQUIRED_FIELDS = ['category']
 
 class Skills(models.Model):
@@ -37,10 +37,10 @@ class MCF(models.Model):
     
 
 class Student(models.Model):
-    education=models.CharField(max_length=50)
+    education=models.CharField(max_length=50,null=True)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')
-    category=models.CharField( max_length=50,choices=CATEGORY_CHOICES)
-    skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"))
+    category=models.CharField( max_length=50,choices=CATEGORY_CHOICES,null=True)
+    skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"),null=True)
     rating=models.IntegerField(default=5)
     savedposts=models.ManyToManyField('post.Opportunity', verbose_name=("opportunity"))
     REQUIRED_FIELDS = ['education']

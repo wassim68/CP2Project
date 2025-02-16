@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from post.models import Application,Opportunity,Team
+from post.models import Opportunity,Team
 from post import serializer
 from . import models
 from Auth.models import User,company,Student
@@ -252,69 +252,3 @@ class team_managing(APIView):
             return Response({"details": f"left, ownership changed to name:{new_leader.name} , id:{new_leader.id}"}, status=status.HTTP_200_OK)
         return Response({"details" : "left"},status=status.HTTP_200_OK) 
 
-class applications(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsStudent]
-    def post(self,request,id):
-        user=request.user 
-        data=request.data
-        team=data.pop('team',None)
-        try:
-         post=Opportunity.objects.get(id=id)
-         if post.status =='open':
-             if team:
-                 team=Team.objects.get(id=id)
-             else :
-                if post.applications.filter(student=user).exists():
-                    return Response({"You have already applied for this opportunity"}, status=status.HTTP_400_BAD_REQUEST) 
-                ser=serializer.application_serializer(data=data)
-                if ser.is_valid():
-                    ser.save(student=user,approve=True)
-                    post.applications.add(ser.data['id'])
-                    return Response(ser.data)
-                return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
-         return Response({'the opportunity is closed'},status=status.HTTP_226_IM_USED)
-        except Team.DoesNotExist:
-            return Response({"team does'nt exist"},status=status.HTTP_404_NOT_FOUND)
-        except Opportunity.DoesNotExist:
-            return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
-        
-class deleteapplication(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsStudent]
-    def delete(self,request,id):
-        user=request.user
-        try:
-            app=Application.objects.get(student=user,opportunities__id=id)
-            app.delete()
-            return Response({'item deleted'})
-        except Application.DoesNotExist:
-            return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
-        
-class application_crud(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsStudent]
-    def get(self,request):
-        user=request.user
-        try:
-            app=Application.objects.filter(Q(student=user))
-            post=Opportunity.objects.filter(applications__in=app)
-            ser=serializer.opportunity_serializer(post,many=True)
-            se=serializer.application_serializer(app,many=True)
-            return Response({'post':ser.data,'application':se.data})
-        except Exception as e:
-            return Response(e,status=status.HTTP_404_NOT_FOUND)
-
-
-class company_app_management(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsCompany]
-    def get(self,request,id):
-        user=request.user
-        try:
-            post=Opportunity.objects.filter(company=user,id=id)
-            app=models.Application.objects.filter(opportunities__in=post)
-            ser=serializer.application_serializer(app,many=True)
-            return Response(ser.data)
-        except Exception as e:
-            return Response(e,status=status.HTTP_404_NOT_FOUND)
-class choose_app(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsCompany]
-    def post(self,request,id):
-        user=request.user 
