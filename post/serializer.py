@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import Application,Opportunity,Team
+from .models import Opportunity,Team
 from Auth.serlaizers import UserStudentSerializer,SkillsSerializer
+from Auth.models import Skills
 
 class team_serializer(serializers.ModelSerializer):
     #students = UserStudentSerializer(required = False,many=True)
@@ -13,23 +14,22 @@ class team_serializer(serializers.ModelSerializer):
             'leader'
         ]
 
-class application_serializer(serializers.ModelSerializer):
-    status=serializers.CharField(read_only=True)
-    class Meta :
-        model = Application
-        fields = [
-            'id',
-            'proposal',
-            'status',
-            'approve',
-        ]
-
 class opportunity_serializer(serializers.ModelSerializer):
-    skills=SkillsSerializer(many=True)
+    skill_input = serializers.ListField(
+      child=serializers.CharField(),
+      required=False,
+      write_only=1)
+    skills=SkillsSerializer(many=True,read_only=True)
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['skills'] = [skill['name'] for skill in representation['skills']]
         return representation
+    def create(self, validated_data):
+        skill_names = validated_data.pop('skill_input',[])
+        student = Opportunity.objects.create(**validated_data)
+        skills = Skills.objects.filter(name__in=skill_names)  
+        student.skills.set(skills)  
+        return student
     class Meta :
         model = Opportunity
         fields = [
@@ -40,6 +40,7 @@ class opportunity_serializer(serializers.ModelSerializer):
             'Type',
             'category',
             'skills',
-            'daysleft'
+            'endday',
+            'skill_input'
         ]
         
