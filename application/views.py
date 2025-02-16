@@ -22,8 +22,14 @@ class applications(APIView):
          if post.status =='open':
              if team:
                  team=Team.objects.get(name='cite 6')
+                 if post.applications.filter(team__name=team.name).exists():
+                     return Response({"You are already entre this "}, status=status.HTTP_400_BAD_REQUEST)
                  student_emails = list(team.students.values_list('email', flat=True))
-                 tsk.sendemail.delay(
+                 ser=serializer.application_serializer(data=data)
+                 if ser.is_valid():
+                      ser.save(team=team)
+                      post.applications.add(ser.data['id'])
+                      tsk.sendemail.delay(
     message=(
         "You have been invited to participate in <strong>'{request_title}'</strong>, "
         "a {request_type} that requires team approval.<br><br>"
@@ -47,15 +53,14 @@ class applications(APIView):
         request_description=post.description,
         request_creator=team.name,
         deadline_date=post.endday,
-        request_id=123  
+        request_id=ser.data['id']  
     ),
     subject="Action Required: Approve Request for Internship/Challenge",
     receipnt=student_emails,
     title="Request Approval Needed",
     user='moo'
 )
-                 return Response({'team':student_emails})
-                 
+                 return Response(ser.data)
              else :
                 if post.applications.filter(student=user).exists():
                     return Response({"You have already applied for this opportunity"}, status=status.HTTP_400_BAD_REQUEST) 
@@ -70,6 +75,7 @@ class applications(APIView):
             return Response({"team does'nt exist"},status=status.HTTP_404_NOT_FOUND)
         except Opportunity.DoesNotExist:
             return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+        
 class accept_application(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
     def post(self,request,id):
@@ -83,6 +89,20 @@ class accept_application(APIView):
             return Response({'accepted'})
         except Application.DoesNotExist:
             return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+
+class reject_application(APIView):
+    permission_classes=[IsAuthenticated,permissions.IsStudent]
+    def post(self,request,id):
+        user=request.user
+        try:
+            app=Application.objects.get(id=id)
+            if app.acceptedby.filter(name=user.name).exists():
+              app.acceptedby.remove(user)
+            app.save()
+            return Response({'rejected'})
+        except Application.DoesNotExist:
+            return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+
 class deleteapplication(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
     def delete(self,request,id):

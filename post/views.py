@@ -197,7 +197,7 @@ class team_managing(APIView):
         team.students.remove(removed_user)
         return Response({"details" : "kicked"},status=status.HTTP_200_OK)
         
-    def post(self,request,*args, **kwargs):#kick
+    def post(self,request,*args, **kwargs):
         user = request.user
         data = request.data
 
@@ -226,7 +226,7 @@ class team_managing(APIView):
         team.students.add(added_user)
         return Response({"details" : "added"},status=status.HTTP_200_OK)
 
-    def delete(self,request,*args, **kwargs):#kick
+    def delete(self,request,*args, **kwargs):
         user = request.user
         data = request.data
 
