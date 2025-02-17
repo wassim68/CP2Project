@@ -82,6 +82,7 @@ class accept_application(APIView):
         user=request.user
         try:
             app=Application.objects.get(id=id)
+            op=app.opportunities.all().first()
             app.acceptedby.add(user)
             if app.acceptedby.count()==app.team.students.count():
                 app.approve=True
