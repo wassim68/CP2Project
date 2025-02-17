@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'schema_history',
     'application',
+    'corsheaders',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -62,8 +63,9 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,  # Optionally rotate refresh tokens on refresh
     'BLACKLIST_AFTER_ROTATION': True,  # Blacklist old tokens after rotation (requires token_blacklist)
 }
-
+CORS_ALLOW_ALL_ORIGINS = True
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
