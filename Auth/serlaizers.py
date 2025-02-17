@@ -58,6 +58,11 @@ class UserCompanySerializer(serializers.ModelSerializer):
             ompany = company.objects.create(**company_data)
             user.company = ompany  
             user.save()
+        ser=CompanySerializer(data={'skill_input':[]})
+        if ser.is_valid():
+            ser.save()
+        user.company=ser.instance
+        user.save()
         return user
   def update(self, instance, validated_data):
         company_data = validated_data.pop('company', None)
@@ -85,7 +90,9 @@ class UserStudentSerializer(serializers.ModelSerializer):
   password=serializers.CharField(write_only=1)
   type=serializers.CharField(read_only=True)
   def create(self,validated_data):
-        Student_data = validated_data.pop('student', None)  
+        Student_data = None
+        if 'student' in validated_data:
+         Student_data = validated_data.pop('student', None)  
         validated_data['password'] = make_password(validated_data['password'])
         user = User.objects.create(**validated_data)
         if Student_data:
@@ -95,10 +102,16 @@ class UserStudentSerializer(serializers.ModelSerializer):
             skills = Skills.objects.filter(name__in=skill_names)  
             student.skills.set(skills)  
             user.save()
+        ser=StudentSerializer(data={'skill_input':[]})
+        if ser.is_valid():
+            ser.save()
+        user.student=ser.instance
+        user.save()
         return user
   def to_representation(self, instance):
         representation = super().to_representation(instance)
-        company_representation = representation.pop('student')
+        if 'student' in representation:
+         company_representation = representation.pop('student')
         representation.update(company_representation)  
         return representation
   def update(self, instance, validated_data):
