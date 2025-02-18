@@ -16,15 +16,18 @@ class applications(APIView):
     def post(self,request,id):
         user=request.user 
         data=request.data
-        team=data.pop('team',None)
+        team=request.headers.get('team')
         try:
          post=Opportunity.objects.get(id=id)
          if post.status =='open':
              if team:
-                 team=Team.objects.get(name='cite 6')
+                 team=Team.objects.get(name=team)
                  if post.applications.filter(team__name=team.name).exists():
                      return Response({"You are already entre this "}, status=status.HTTP_400_BAD_REQUEST)
-                 student_emails = list(team.students.values_list('email', flat=True))
+                 student_emails = [
+                      email for email in team.students.values_list('email', flat=True)
+                      if email != request.user.email
+                       ]
                  ser=serializer.application_serializer(data=data)
                  if ser.is_valid():
                       ser.save(team=team)
@@ -109,7 +112,7 @@ class deleteapplication(APIView):
     def delete(self,request,id):
         user=request.user
         try:
-            app=Application.objects.get(student=user,opportunities__id=id)
+            app=Application.objects.get(id=id,student=user)
             app.delete()
             return Response({'item deleted'})
         except Application.DoesNotExist:
@@ -125,7 +128,7 @@ class application_crud(APIView):
             se=serializer.application_serializer(app,many=True)
             return Response({'post':ser.data,'application':se.data})
         except Exception as e:
-            return Response({'eror':str(e)},status=status.HTTP_404_NOT_FOUND)
+            return Response({'error':str(e)},status=status.HTTP_404_NOT_FOUND)
 class company_app_management(APIView):
     permission_classes=[IsAuthenticated,permissions.IsCompany]
     def get(self,request,id):
@@ -140,8 +143,20 @@ class company_app_management(APIView):
 class choose_app(APIView):
     permission_classes=[IsAuthenticated,permissions.IsCompany]
     def post(self,request,id):
-        user=request.user 
-        pass
+        ids=request.data.get('id',[])
+        user=request.user
+        try: 
+         post=Opportunity.objects.get(id=id,company=user)
+         app=post.applications.filter(id__in=ids)
+         app.update(status='accepted')
+         post.status='closed'
+         post.save()
+         
+         ser=serializer.application_serializer(app,many=True)
+         return Response(ser.data)
+        except Opportunity.DoesNotExist:
+            return Response({'post does not exist'},status=status.HTTP_404_NOT_FOUND)
+
 
 
 

@@ -6,4 +6,6 @@ urlpatterns = [
     path('deapplication/<int:id>/',views.deleteapplication.as_view()),
     path('<int:id>/',views.company_app_management.as_view()),
     path('<int:id>/accept',views.accept_application.as_view()),
+    path('<int:id>/reject',views.reject_application.as_view()),
+    path('choose/<int:id>/',views.choose_app.as_view()),
 ]

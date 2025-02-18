@@ -3,8 +3,7 @@ from . import models
 from Auth import serlaizers as sr
 from post import serializer as psr
 class application_serializer(serializers.ModelSerializer):
-    student=sr.UserStudentSerializer(required=False,many=False)
     team=psr.team_serializer(required=False,many=False)
     class Meta:
         model = models.Application
-        fields = '__all__'
+        fields = ['id','team','proposal','status','approve']

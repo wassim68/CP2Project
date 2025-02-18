@@ -84,7 +84,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     company=models.OneToOneField("company", verbose_name=("company"),null=True,on_delete=models.SET_NULL,related_name="user")
     student=models.OneToOneField("Student", verbose_name=("Students"), null=True,on_delete=models.SET_NULL,related_name="user")
     profilepic=models.ImageField(upload_to='images', height_field=None, width_field=None, max_length=None,null=True)
-    type=models.CharField( choices=types,max_length=50)
+    type=models.CharField( choices=types,max_length=50,null=True)
     date_joined = models.DateField(auto_now_add=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

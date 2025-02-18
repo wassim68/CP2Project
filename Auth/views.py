@@ -15,6 +15,12 @@ from django.contrib.auth.models import Permission
 from django.core.cache import cache
 from drf_yasg.utils import swagger_auto_schema
 
+class google_auth(APIView):
+  def post(self,request):
+    pass
+class linkedin_auth(APIView):
+  def post(self,request):
+    pass
 class Signup(APIView):
   def post(self,request):
     data=request.data
@@ -37,9 +43,10 @@ class Signup(APIView):
         refresh=RefreshToken.for_user(user)
         access_token = refresh.access_token
         return Response({'user':ser.data,'refresh':str(refresh),'access':str(access_token)})
-      return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)  
-    return Response({'add type'},status=status.HTTP_400_BAD_REQUEST)
-    
+      return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
+    return Response({'add type'},status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
 class Login(APIView):
   def post(self,request):
     name=request.data.get('name')
@@ -63,6 +70,7 @@ class Login(APIView):
       return  Response({'Email or password are requeird'},status=status.HTTP_400_BAD_REQUEST)
     except models.User.DoesNotExist:
       return Response({'User Dosent exist'},status=status.HTTP_404_NOT_FOUND)
+
 
 class acc(APIView):
   permission_classes=[IsAuthenticated]
@@ -90,6 +98,13 @@ class acc(APIView):
        ser.save()
        return Response(ser.data)
       return Response(ser.errors)
+  def get(self,request):
+     user=request.user
+     if user.company:
+       ser=serlaizers.UserCompanySerializer(user)
+     elif user.student:
+       ser=serlaizers.UserStudentSerializer(user)
+     return Response(ser.data)
 
 
 
@@ -176,6 +191,9 @@ class getuser(APIView):
       return Response(ser.data)
     except Exception :
       return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
+
+
+  
 
 class savedpost(APIView):
   permission_classes=[IsAuthenticated,permissions.IsStudent]
