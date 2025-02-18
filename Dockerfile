@@ -8,7 +8,9 @@ WORKDIR /app
 COPY requirements.txt /app/
 
 # Install pip dependencies using BuildKit for caching
-RUN --mount=type=cache,id=cache-pip_cache,target=/root/.cache/pip python -m pip install --upgrade pip
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --upgrade pip && \
+    pip install -r requirements.txt
 
 # Expose the port your app will run on
 EXPOSE 8000
