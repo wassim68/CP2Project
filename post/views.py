@@ -12,11 +12,9 @@ from Auth.serlaizers import UserStudentSerializer
 from itertools import chain
 from Auth import permissions
 from django.db.models import Q
-from django.views.decorators.cache import cache_page
 
 class opportunity_crud(APIView):
     permission_classes = [IsAuthenticated]
-    @cache_page(60*5)
     def get(self,request,*args, **kwargs):
         user = request.user
         if not user.type.lower() == 'company':
@@ -89,9 +87,7 @@ class team_crud(APIView):
         user = request.user
         if not user.type.lower() == 'student':
             return Response({"details" : "unable to get data"},status=status.HTTP_401_UNAUTHORIZED)
-
         teams = user.teams.all()
-
         if teams.exists() :
             ser = serializer.team_serializer(instance = teams,many = True ) 
             return Response({"data" : ser.data},status=status.HTTP_200_OK)
