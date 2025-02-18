@@ -4,6 +4,9 @@ services:
   server:
     build:
       context: .
+      dockerfile: Dockerfile
+      args:
+        DOCKER_BUILDKIT: 1
     command: gunicorn ProjectCore.wsgi:application --bind 0.0.0.0:8000
     ports:
       - "8000:8000"
