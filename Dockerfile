@@ -22,12 +22,10 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
-# Leverage a bind mount to requirements.txt to avoid having to copy them into this layer.
+# Install dependencies
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
-    python -m pip install -r requirements.txt
+    python -m pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the source code into the container.
 COPY . .
@@ -41,5 +39,5 @@ USER appuser
 # Expose the port that the application listens on.
 EXPOSE 8000
 
-# Run the Django development server.
-CMD python manage.py runserver 0.0.0.0:8000
+# Command to run Gunicorn (production server) instead of the Django development server
+CMD ["gunicorn", "ProjectCore.wsgi:application", "--bind", "0.0.0.0:8000"]
