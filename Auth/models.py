@@ -40,7 +40,7 @@ class Student(models.Model):
     education=models.CharField(max_length=50,null=True)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES,null=True,blank=True)
-    skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"),null=True)
+    skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"))
     rating=models.IntegerField(default=5)
     savedposts=models.ManyToManyField('post.Opportunity', verbose_name=("opportunity"))
     REQUIRED_FIELDS = ['education']
