@@ -14,7 +14,7 @@ class Application(models.Model):
     approve = models.BooleanField(default=False)
     team = models.ForeignKey('post.Team', related_name='applications', on_delete=models.CASCADE,null=1)
     student = models.ForeignKey(User, related_name='applications', on_delete=models.CASCADE,null=1)
-    acceptedby = models.ManyToManyField("Auth.User", verbose_name=("accepteduser"),null=True)
+    acceptedby = models.ManyToManyField("Auth.User", verbose_name=("accepteduser"))
 
     def __str__(self):
         return f"Application by {self.student} - Status: {self.status}"

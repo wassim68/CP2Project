@@ -27,7 +27,7 @@ class Opportunity(models.Model):
 
 class Team(models.Model):
     name = models.CharField(max_length=255)
-    students = models.ManyToManyField(User, related_name='teams',null= True)
+    students = models.ManyToManyField(User, related_name='teams')
     leader = models.ForeignKey(User, related_name='owned_teams', on_delete=models.CASCADE,null=True)
 
     def __str__(self):
