@@ -14,6 +14,7 @@ from post import serializer as sr
 from django.contrib.auth.models import Permission
 from django.core.cache import cache
 from drf_yasg.utils import swagger_auto_schema
+from datetime import datetime
 
 class google_auth(APIView):
   def post(self,request):
@@ -120,7 +121,7 @@ class ForgotPass(APIView):
       useremail=user.email
       otp = f"{random.randint(0, 999999):06d}"
       tasks.sendemail.delay(
-    message=(
+      message=(
         "You requested to reset your password. Please use the OTP below:<br><br>"
         "<h2 style='color: #007bff; text-align: center;'>{}</h2><br>"
         "This OTP is valid for only 5 minutes.<br><br>"
@@ -129,9 +130,8 @@ class ForgotPass(APIView):
     subject="Reset Your Password",
     receipnt=[useremail],
     title="Reset Password",
-    user=user.name
-)
-      return Response({'otp':otp})
+    user=user.name)
+      return Response({'otp':otp,'iat':datetime.now()})
     except models.User.DoesNotExist:
       return Response({'user dosnet exist'},status=status.HTTP_404_NOT_FOUND)
 

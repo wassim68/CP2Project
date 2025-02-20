@@ -99,6 +99,3 @@ def sendemail(message,subject,receipnt,title,user):
      from_email = settings.DEFAULT_FROM_EMAIL
      recipient_list = receipnt
      send_mail(subject, title, from_email, recipient_list, html_message=html_message)
-
-def send_otp():
-     pass
