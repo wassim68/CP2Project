@@ -15,6 +15,7 @@ from django.contrib.auth.models import Permission
 from django.core.cache import cache
 from drf_yasg.utils import swagger_auto_schema
 from datetime import datetime
+import pytz
 
 class google_auth(APIView):
   def post(self,request):
@@ -131,7 +132,7 @@ class ForgotPass(APIView):
     receipnt=[useremail],
     title="Reset Password",
     user=user.name)
-      return Response({'otp':otp,'iat':datetime.now()})
+      return Response({'otp':otp,'iat':datetime.utcnow().replace(tzinfo=pytz.utc).isoformat()})
     except models.User.DoesNotExist:
       return Response({'user dosnet exist'},status=status.HTTP_404_NOT_FOUND)
 
