@@ -16,6 +16,72 @@ from django.core.cache import cache
 from drf_yasg.utils import swagger_auto_schema
 from datetime import datetime
 import pytz
+from google.oauth2 import id_token
+from google.auth.transport import requests as req
+import requests
+from django.http import JsonResponse
+from ProjectCore.settings import WEB_CLIENT_ID, APP_CLIENT_ID
+def linkedin_authenticate(request):
+    access_token = request.POST.get("access_token") or request.headers.get("Authorization")
+
+    if not access_token:
+        return JsonResponse({"error": "Access token required"}, status=400)
+
+    linkedin_url = "https://api.linkedin.com/v2/me"
+    linkedin_email_url = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))"
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    profile_response = requests.get(linkedin_url, headers=headers)
+    email_response = requests.get(linkedin_email_url, headers=headers)
+
+    if profile_response.status_code != 200 or email_response.status_code != 200:
+        return JsonResponse({"error": "Invalid LinkedIn token"}, status=400)
+
+    profile_data = profile_response.json()
+    email_data = email_response.json()
+    
+    first_name = profile_data.get("localizedFirstName", "")
+    last_name = profile_data.get("localizedLastName", "")
+    email = email_data.get("elements", [{}])[0].get("handle~", {}).get("emailAddress", "")
+
+    if not email:
+        return JsonResponse({"error": "Email not found"}, status=400)
+
+    user, _ = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": first_name+last_name, 'password':access_token,'profile_picture':profile_data.get("profilePicture", {}).get("displayImage", ""), 'type':None})
+    refresh = RefreshToken.for_user(user)
+    return JsonResponse({
+        "message": "Login successful",
+        "access_token": str(refresh.access_token),
+        "refresh_token": str(refresh),
+        "user": {"email": email, "name": f"{first_name} {last_name}"}
+    })
+def google_authenticate(request):
+    token = request.POST.get("id_token")  
+    try:
+        for client_id in [WEB_CLIENT_ID, APP_CLIENT_ID]:
+            try:
+                decoded_token = id_token.verify_oauth2_token(token, req.Request(), client_id)
+                break 
+            except Exception:
+                continue
+        email = decoded_token.get("email")
+        name = decoded_token.get("name")
+        picture = decoded_token.get("picture")
+        if not email:
+            return JsonResponse({"error": "Invalid token"}, status=400)
+        user, created = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": name,'password':token})
+        refresh = RefreshToken.for_user(user)
+        return JsonResponse({
+            "message": "Login successful",
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
+            "user": {"email": email, "name": name, "picture": picture,"type":None}
+        })
+    
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
 
 class google_auth(APIView):
   def post(self,request):
@@ -145,9 +211,6 @@ class Fcm(APIView):
       ser.save()
       return Response({'suceffuly'})
     return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
-
-
-
 class reset_password(APIView):
   def put(self,request):
     email=request.data.get('email')

@@ -163,3 +163,5 @@ CACHES = {
         "LOCATION": "redis://redis:6379/1",
     }
 }
+WEB_CLIENT_ID = os.getenv('WEB_CLIENT_ID')
+APP_CLIENT_ID = os.getenv('APP_CLIENT_ID')

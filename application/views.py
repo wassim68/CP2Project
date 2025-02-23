@@ -10,6 +10,7 @@ from post.models import Opportunity,Team
 from Auth import permissions
 from rest_framework.permissions import IsAuthenticated
 from Auth import tasks as tsk
+
 # Create your views here.
 class applications(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
@@ -93,7 +94,6 @@ class accept_application(APIView):
             return Response({'accepted'})
         except Application.DoesNotExist:
             return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
-
 class reject_application(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
     def post(self,request,id):
@@ -145,13 +145,12 @@ class choose_app(APIView):
     def post(self,request,id):
         ids=request.data.get('id',[])
         user=request.user
-        try: 
+        try:
          post=Opportunity.objects.get(id=id,company=user)
          app=post.applications.filter(id__in=ids)
          app.update(status='accepted')
          post.status='closed'
          post.save()
-         
          ser=serializer.application_serializer(app,many=True)
          return Response(ser.data)
         except Opportunity.DoesNotExist:
