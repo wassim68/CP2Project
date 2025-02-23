@@ -7,10 +7,12 @@ from post import serializer as sr
 from . import models
 from .models import Application
 from post.models import Opportunity,Team
+from Auth.serlaizers import UserCompanySerializer
 from Auth import permissions
 from rest_framework.permissions import IsAuthenticated
 from Auth import tasks as tsk
-
+from drf_yasg.utils import swagger_auto_schema
+from . import documents
 # Create your views here.
 class applications(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
@@ -70,7 +72,7 @@ class applications(APIView):
                     return Response({"You have already applied for this opportunity"}, status=status.HTTP_400_BAD_REQUEST) 
                 ser=serializer.application_serializer(data=data)
                 if ser.is_valid():
-                    ser.save(student=user,approve=True)
+                    ser.save(student=user,approve=True,status='under_review')
                     post.applications.add(ser.data['id'])
                     return Response(ser.data)
                 return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
@@ -90,6 +92,7 @@ class accept_application(APIView):
             app.acceptedby.add(user)
             if app.acceptedby.count()==app.team.students.count():
                 app.approve=True
+                app.status='under_review'
             app.save()
             return Response({'accepted'})
         except Application.DoesNotExist:
@@ -147,6 +150,8 @@ class choose_app(APIView):
         user=request.user
         try:
          post=Opportunity.objects.get(id=id,company=user)
+         all=post.applications.all()
+         all.update(status='rejected')
          app=post.applications.filter(id__in=ids)
          app.update(status='accepted')
          post.status='closed'
@@ -155,6 +160,22 @@ class choose_app(APIView):
          return Response(ser.data)
         except Opportunity.DoesNotExist:
             return Response({'post does not exist'},status=status.HTTP_404_NOT_FOUND)
+class  search(APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self,request):
+        user=request.user
+        try:
+            query = request.GET.get('q', '')
+            post=documents.Opportunitydocument.search().query("multi_match",query=query,fields=['title'])
+            company=documents.companyDocument.search().query("multi_match",query=query,fields=['name'])
+            post=post.to_queryset()
+            company=company.to_queryset()
+            company=company.filter(type='Company')
+            ser1=sr.opportunity_serializer(post,many=True)
+            ser2=UserCompanySerializer(company,many=True)
+            return Response({'opportunity':ser1.data,'company':ser2.data})
+        except Exception as e:
+            return Response({'error':str(e)},status=status.HTTP_404_NOT_FOUND)
 
 
 

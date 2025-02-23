@@ -56,6 +56,25 @@ def linkedin_authenticate(request):
         "refresh_token": str(refresh),
         "user": {"email": email, "name": f"{first_name} {last_name}"}
     })
+class addtype(APIView):
+  permission_classes=[IsAuthenticated]
+  def put(self,request):
+    user=request.user
+    type=request.data['type']
+    if type.lower()=='student':
+        ser=serlaizers.UserStudentSerializer(user,data={'type':'Student'},partial=True)
+        if ser.is_valid():
+          ser.save()
+          return Response(ser.data)
+        return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
+    elif type.lower()=='company':
+        ser=serlaizers.UserCompanySerializer(user,data={'type':'Company'},partial=True)
+        if ser.is_valid():
+          ser.save()
+          return Response(ser.data)
+        return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
+    else:
+      return Response('Entre a valid type',status=status.HTTP_400_BAD_REQUEST)
 def google_authenticate(request):
     token = request.POST.get("id_token")  
     try:
@@ -65,6 +84,8 @@ def google_authenticate(request):
                 break 
             except Exception:
                 continue
+        if decoded_token is None:
+            return JsonResponse({"error": "Invalid token"}, status=400)
         email = decoded_token.get("email")
         name = decoded_token.get("name")
         picture = decoded_token.get("picture")
@@ -81,14 +102,6 @@ def google_authenticate(request):
     
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
-
-
-class google_auth(APIView):
-  def post(self,request):
-    pass
-class linkedin_auth(APIView):
-  def post(self,request):
-    pass
 class Signup(APIView):
   def post(self,request):
     data=request.data
@@ -166,6 +179,7 @@ class acc(APIView):
        ser.save()
        return Response(ser.data)
       return Response(ser.errors)
+
   def get(self,request):
      user=request.user
      if user.company:
@@ -173,9 +187,6 @@ class acc(APIView):
      elif user.student:
        ser=serlaizers.UserStudentSerializer(user)
      return Response(ser.data)
-
-
-
 class ForgotPass(APIView):
   def post(self,request):
     email=request.data.get('email')
