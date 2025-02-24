@@ -168,10 +168,12 @@ class  search(APIView):
             query = request.GET.get('q', '')
             post=documents.Opportunitydocument.search().query("multi_match",query=query,fields=['title'])
             company=documents.companyDocument.search().query("multi_match",query=query,fields=['name'])
-            post=post.to_queryset()
-            company=company.to_queryset()
-            company=company.filter(type='Company')
+            if post:
+             post=post.to_queryset()
             ser1=sr.opportunity_serializer(post,many=True)
+            if company:
+             company=company.to_queryset()
+             company=company.filter(type='Company')
             ser2=UserCompanySerializer(company,many=True)
             return Response({'opportunity':ser1.data,'company':ser2.data})
         except Exception as e:

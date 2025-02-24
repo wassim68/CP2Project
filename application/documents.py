@@ -16,7 +16,6 @@ class companyDocument(Document):
 class Opportunitydocument(Document):
     class Index:
         name = 'opportunity'
-
     class Django:
         model = models.Opportunity
         fields = ['title']

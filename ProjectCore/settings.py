@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'application',
     'corsheaders',
     "drf_yasg",
+    'django_elasticsearch_dsl',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -168,7 +169,9 @@ WEB_CLIENT_ID = os.getenv('WEB_CLIENT_ID')
 APP_CLIENT_ID = os.getenv('APP_CLIENT_ID')
 ELASTICSEARCH_DSL = {
     'default': {
-        'hosts': 'http://elasticsearch:9200'  # Use the container name
+        'hosts': 'http://elasticsearch:9200',
     }
 }
+
+
 
