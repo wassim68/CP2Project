@@ -110,4 +110,5 @@ class Notfications(models.Model):
     user=models.ForeignKey("Auth.User", verbose_name=("user"), on_delete=models.CASCADE)
     description=models.TextField()
     time=models.TimeField(auto_now_add=True)
+    isseen=models.BooleanField(default=False)
 

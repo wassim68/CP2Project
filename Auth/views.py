@@ -300,7 +300,13 @@ class post(APIView):
     user=request.user
     ser=sr.opportunity_serializer(user.student.savedposts,many=True)
     return Response(ser.data)
-
+class notfication(APIView):
+  permission_classes=[IsAuthenticated]
+  def put(self,request,id):
+    user=request.user
+    notf=models.Notfications.objects.filter(id=id).update(isseen=True)
+    return Response({'updated'})
+  
 
 
 
