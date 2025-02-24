@@ -4,7 +4,7 @@ from django.conf import settings
 
 class Command(BaseCommand):
     help = 'Create a superuser if it doesn\'t already exist'
-
+    
     def handle(self, *args, **kwargs):
         if not User.objects.filter(name='moundher').exists():
             User.objects.create_superuser(
