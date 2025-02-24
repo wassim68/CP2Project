@@ -1,4 +1,4 @@
-from django_elasticsearch_dsl import Document
+from django_elasticsearch_dsl import Document,Index,fields
 from django_elasticsearch_dsl.registries import registry
 from post import models
 from Auth.models import User
