@@ -47,15 +47,17 @@ INSTALLED_APPS = [
     'post',
     'rest_framework',
     'rest_framework_simplejwt',
-    'drf_yasg',
     'schema_history',
     'application',
     'corsheaders',
+    "drf_yasg",
+    'django_elasticsearch_dsl',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',  # Use JWT for authentication
     ),
+    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
 }
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
@@ -165,3 +167,11 @@ CACHES = {
 }
 WEB_CLIENT_ID = os.getenv('WEB_CLIENT_ID')
 APP_CLIENT_ID = os.getenv('APP_CLIENT_ID')
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': 'http://elasticsearch:9200',
+    }
+}
+
+
+

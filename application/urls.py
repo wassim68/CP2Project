@@ -8,4 +8,5 @@ urlpatterns = [
     path('<int:id>/accept',views.accept_application.as_view()),
     path('<int:id>/reject',views.reject_application.as_view()),
     path('choose/<int:id>/',views.choose_app.as_view()),
+    path('search/',views.search.as_view()),
 ]

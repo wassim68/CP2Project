@@ -9,7 +9,6 @@ TYPES = [
 OPPORTUNITY_STATUS = [
     ('open', 'Open'),
     ('closed', 'Closed'),
-    ('pending', 'Pending'),
 ]
 class Opportunity(models.Model):
     company = models.ForeignKey(User,related_name='opportunity',on_delete=models.CASCADE,null=True)
