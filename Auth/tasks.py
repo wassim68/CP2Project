@@ -2,7 +2,20 @@ from ProjectCore import settings
 from django.core.mail import send_mail
 from firebase_admin import messaging
 from celery import shared_task
-
+import supabase
+import os
+from datetime import datetime
+supabase_client = supabase.create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+def upload_to_supabase(file,name):
+    file_content = file.read()
+    file_extension = os.path.splitext(file.name)[1]  
+    file_path = f"uploads/{file.name}+{name}+{datetime.now()}"  
+    response = supabase_client.storage.from_("cp2").upload(
+        path=file_path,
+        file=file_content,
+        file_options={"content-type": file.content_type}
+    )
+    return supabase_client.storage.from_("cp2").get_public_url(file_path)
 @shared_task
 def send_fcm_notification(device_token, title, body):
     message = messaging.Message(

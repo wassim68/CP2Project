@@ -9,4 +9,4 @@ class application_serializer(serializers.ModelSerializer):
     approve=serializers.BooleanField(read_only=True)
     class Meta:
         model = models.Application
-        fields = ['id','team','proposal','status','approve']
+        fields = ['id','team','proposal','status','approve','atachedfile','links']
