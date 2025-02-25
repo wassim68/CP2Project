@@ -172,6 +172,8 @@ ELASTICSEARCH_DSL = {
         'hosts': 'http://elasticsearch:9200',
     }
 }
-
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+SUPABASE_BUCKET = os.getenv('SUPABASE_BUCKET')
 
 

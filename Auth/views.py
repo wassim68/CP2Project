@@ -267,9 +267,6 @@ class getuser(APIView):
     except Exception :
       return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
 
-
-  
-
 class savedpost(APIView):
   permission_classes=[IsAuthenticated,permissions.IsStudent]
   def post(self,request,id):

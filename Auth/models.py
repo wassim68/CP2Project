@@ -37,6 +37,7 @@ class MCF(models.Model):
     
 
 class Student(models.Model):
+    cv=models.URLField(max_length=1000,null=True)
     education=models.CharField(max_length=50,null=True)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES,null=True,blank=True)
@@ -81,9 +82,10 @@ class User(AbstractBaseUser,PermissionsMixin):
     email = models.EmailField(max_length=100, unique=True)
     password = models.CharField(max_length=100)
     number=models.IntegerField(null=True)
+    links = models.JSONField(null=True, blank=True)
     company=models.OneToOneField("company", verbose_name=("company"),null=True,on_delete=models.SET_NULL,related_name="user")
     student=models.OneToOneField("Student", verbose_name=("Students"), null=True,on_delete=models.SET_NULL,related_name="user")
-    profilepic=models.ImageField(upload_to='images', height_field=None, width_field=None, max_length=None,null=True)
+    profilepic=models.URLField(max_length=1000,null=True)
     type=models.CharField( choices=types,max_length=50,null=True)
     date_joined = models.DateField(auto_now_add=True)
     is_staff = models.BooleanField(default=False)

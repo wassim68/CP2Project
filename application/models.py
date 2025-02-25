@@ -15,6 +15,7 @@ class Application(models.Model):
     team = models.ForeignKey('post.Team', related_name='applications', on_delete=models.CASCADE,null=1)
     student = models.ForeignKey(User, related_name='applications', on_delete=models.CASCADE,null=1)
     acceptedby = models.ManyToManyField("Auth.User", verbose_name=("accepteduser"))
-
+    atachedfile=models.URLField(max_length=200, null=True, blank=True)
+    links = models.JSONField(null=True, blank=True)
     def __str__(self):
         return f"Application by {self.student} - Status: {self.status}"

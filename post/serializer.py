@@ -15,6 +15,7 @@ class team_serializer(serializers.ModelSerializer):
         ]
 
 class opportunity_serializer(serializers.ModelSerializer):
+    
     skill_input = serializers.ListField(
       child=serializers.CharField(),
       required=False,
@@ -41,6 +42,7 @@ class opportunity_serializer(serializers.ModelSerializer):
             'category',
             'skills',
             'endday',
-            'skill_input'
+            'skill_input',
+            'worktype'
         ]
         

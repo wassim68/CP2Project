@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from .models import User, company, Skills, Student,MCF
+from . import tasks
 class Fcmserlaizer(serializers.ModelSerializer):
   class Meta:
     model=MCF
@@ -24,7 +25,7 @@ class StudentSerializer(serializers.ModelSerializer):
   skills = SkillsSerializer(many=True, required=False)
   class Meta:
     model = Student
-    fields = ['education','gendre','skills','rating','category','skill_input']
+    fields = ['education','gendre','skills','rating','category','skill_input','cv']
   def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['skills'] = [skill['name'] for skill in representation['skills']]
@@ -47,12 +48,15 @@ class UserCompanySerializer(serializers.ModelSerializer):
   company = CompanySerializer(required=False)
   password=serializers.CharField(write_only=1)
   type=serializers.CharField(read_only=True)
+  pic=serializers.ImageField(required=False)
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'company','type','profilepic','date_joined','password']
+    fields = ['id','name', 'email', 'number', 'company','type','pic','profilepic','links','date_joined','password']
   def create(self, validated_data):
         company_data = validated_data.pop('company', None)  
         validated_data['password'] = make_password(validated_data['password'])
+        if 'pic' in validated_data:
+            validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),validated_data['name'])
         user = User.objects.create(**validated_data)
         if company_data:
             ompany = company.objects.create(**company_data)
@@ -66,6 +70,8 @@ class UserCompanySerializer(serializers.ModelSerializer):
         return user
   def update(self, instance, validated_data):
         company_data = validated_data.pop('company', None)
+        if 'pic' in validated_data:
+            validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
         instance = super().update(instance, validated_data)
         if company_data is not None:
             company_instance = instance.company
@@ -89,11 +95,15 @@ class UserStudentSerializer(serializers.ModelSerializer):
   student = StudentSerializer(required=False)
   password=serializers.CharField(write_only=1)
   type=serializers.CharField(read_only=True)
+  pic=serializers.ImageField(required=False)
+  cv_input=serializers.FileField(required=False)
   def create(self,validated_data):
         Student_data = None
         if 'student' in validated_data:
          Student_data = validated_data.pop('student', None)  
         validated_data['password'] = make_password(validated_data['password'])
+        if 'pic' in validated_data:
+         validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),validated_data['name'])
         user = User.objects.create(**validated_data)
         if Student_data:
             skill_names=Student_data.pop('skill_input',[])
@@ -116,6 +126,11 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return representation
   def update(self, instance, validated_data):
         Student_data = validated_data.pop('student', None)
+        if 'pic' in validated_data:
+            validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
+        Student_data={}
+        if 'cv_input' in validated_data:
+            Student_data['cv']= tasks.upload_to_supabase(validated_data.pop('cv_input'),instance.name)
         instance = super().update(instance, validated_data)
         if Student_data is not None:
             Student_instance = instance.student
@@ -132,4 +147,4 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return instance
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'student','type','profilepic','date_joined','password']
+    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password']
