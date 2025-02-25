@@ -10,7 +10,14 @@ OPPORTUNITY_STATUS = [
     ('open', 'Open'),
     ('closed', 'Closed'),
 ]
+
+work_type=[
+    ('Online', 'Online'),
+    ('Onsite', 'Onsite'),
+    ('Hybrid', 'Hybrid'),
+]
 class Opportunity(models.Model):
+    worktype=models.CharField(choices=work_type, max_length=20)
     company = models.ForeignKey(User,related_name='opportunity',on_delete=models.CASCADE,null=True)
     title = models.CharField(max_length=255)
     description = models.TextField()
