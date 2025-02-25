@@ -71,7 +71,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
   def update(self, instance, validated_data):
         company_data = validated_data.pop('company', None)
         if 'pic' in validated_data:
-            validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),validated_data['name'])
+            validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
         instance = super().update(instance, validated_data)
         if company_data is not None:
             company_instance = instance.company
@@ -96,13 +96,14 @@ class UserStudentSerializer(serializers.ModelSerializer):
   password=serializers.CharField(write_only=1)
   type=serializers.CharField(read_only=True)
   pic=serializers.ImageField(required=False)
+  cv_input=serializers.FileField(required=False)
   def create(self,validated_data):
         Student_data = None
         if 'student' in validated_data:
          Student_data = validated_data.pop('student', None)  
         validated_data['password'] = make_password(validated_data['password'])
         if 'pic' in validated_data:
-            validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),validated_data['name'])
+         validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),validated_data['name'])
         user = User.objects.create(**validated_data)
         if Student_data:
             skill_names=Student_data.pop('skill_input',[])
@@ -126,7 +127,10 @@ class UserStudentSerializer(serializers.ModelSerializer):
   def update(self, instance, validated_data):
         Student_data = validated_data.pop('student', None)
         if 'pic' in validated_data:
-            validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),validated_data['name'])
+            validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
+        Student_data={}
+        if 'cv_input' in validated_data:
+            Student_data['cv']= tasks.upload_to_supabase(validated_data.pop('cv_input'),instance.name)
         instance = super().update(instance, validated_data)
         if Student_data is not None:
             Student_instance = instance.student
@@ -143,4 +147,4 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return instance
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','links','date_joined','password']
+    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password']

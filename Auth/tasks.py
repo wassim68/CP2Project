@@ -9,7 +9,7 @@ supabase_client = supabase.create_client(settings.SUPABASE_URL, settings.SUPABAS
 def upload_to_supabase(file,name):
     file_content = file.read()
     file_extension = os.path.splitext(file.name)[1]  
-    file_path = f"uploads/{file.name}+{name}+{datetime.now()}"  
+    file_path = f"uploads/{file.name}+{name}+{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}"  
     response = supabase_client.storage.from_("cp2").upload(
         path=file_path,
         file=file_content,

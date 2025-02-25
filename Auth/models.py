@@ -37,7 +37,7 @@ class MCF(models.Model):
     
 
 class Student(models.Model):
-    cv=models.URLField(max_length=200,null=True)
+    cv=models.URLField(max_length=1000,null=True)
     education=models.CharField(max_length=50,null=True)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES,null=True,blank=True)
