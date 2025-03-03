@@ -17,7 +17,7 @@ work_type=[
     ('Hybrid', 'Hybrid'),
 ]
 class Opportunity(models.Model):
-    worktype=models.CharField(choices=work_type, max_length=20)
+    worktype=models.CharField(choices=work_type, max_length=20,default='Onsite')
     company = models.ForeignKey(User,related_name='opportunity',on_delete=models.CASCADE,null=True)
     title = models.CharField(max_length=255)
     description = models.TextField()

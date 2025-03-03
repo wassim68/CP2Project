@@ -7,11 +7,10 @@ class application_serializer(serializers.ModelSerializer):
     team=psr.team_serializer(read_only=True,many=False)
     proposal=serializers.CharField(required=True)
     status=serializers.CharField(read_only=True)
-    approve=serializers.BooleanField(read_only=True)
     attechment=serializers.FileField(required=False)
     class Meta:
         model = models.Application
-        fields = ['id','team','proposal','status','approve','atachedfile','attechment','links']
+        fields = ['id','team','proposal','status','atachedfile','attechment','links']
     def create(self, validated_data):
         if 'attechment' in validated_data:
             validated_data['atachedfile']= tasks.upload_to_supabase(validated_data.pop('attechment'),validated_data['team'].name)
