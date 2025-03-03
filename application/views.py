@@ -34,6 +34,7 @@ class applications(APIView):
                  ser=serializer.application_serializer(data=data)
                  if ser.is_valid():
                       ser.save(team=team)
+                      ser.instance.acceptedby.add(user)
                       post.applications.add(ser.data['id'])
                       tsk.sendemail.delay(
     message=(
@@ -125,7 +126,7 @@ class application_crud(APIView):
     def get(self,request):
         user=request.user
         try:
-            app=Application.objects.filter(Q(student=user),Q(approve=True))
+            app=Application.objects.filter(Q(student=user)|Q(team__students=user))
             post=Opportunity.objects.filter(applications__in=app)
             ser=sr.opportunity_serializer(post,many=True)
             se=serializer.application_serializer(app,many=True)
