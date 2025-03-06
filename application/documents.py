@@ -3,6 +3,8 @@ from django_elasticsearch_dsl.registries import registry
 from post import models
 from Auth.models import User
 
+
+
 @registry.register_document
 class companyDocument(Document):
     class Index:

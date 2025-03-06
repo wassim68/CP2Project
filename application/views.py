@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from Auth import tasks as tsk
 from drf_yasg.utils import swagger_auto_schema
 from . import documents
+from elasticsearch_dsl.query import Q as Query
 # Create your views here.
 class applications(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
@@ -166,9 +167,13 @@ class  search(APIView):
     def get(self,request):
         user=request.user
         try:
-            query = request.GET.get('q', '')
-            post=documents.Opportunitydocument.search().query("multi_match",query=query,fields=['title'])
-            company=documents.companyDocument.search().query("multi_match",query=query,fields=['name'])
+            query = request.GET.get('q', '').strip()
+            if not query:
+                return Response({'error':'query is required'},status=status.HTTP_400_BAD_REQUEST)
+            post_query = Query("prefix", title=query.lower())
+            post=documents.Opportunitydocument.search().query(post_query)
+            company_query = Query("prefix", name=query.lower())
+            company = documents.companyDocument.search().query(company_query)
             if post:
              post=post.to_queryset()
             ser1=sr.opportunity_serializer(post,many=True)
