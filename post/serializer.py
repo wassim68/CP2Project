@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Opportunity,Team
-from Auth.serlaizers import UserStudentSerializer,SkillsSerializer
+from Auth.serlaizers import UserStudentSerializer,SkillsSerializer,UserCompanySerializer
 from Auth.models import Skills
 
 class team_serializer(serializers.ModelSerializer):
@@ -15,7 +15,7 @@ class team_serializer(serializers.ModelSerializer):
         ]
 
 class opportunity_serializer(serializers.ModelSerializer):
-    
+    company=UserCompanySerializer(required=False)
     skill_input = serializers.ListField(
       child=serializers.CharField(),
       required=False,
@@ -44,5 +44,6 @@ class opportunity_serializer(serializers.ModelSerializer):
             'endday',
             'skill_input',
             'worktype'
+            'company'
         ]
         
