@@ -48,10 +48,11 @@ class UserCompanySerializer(serializers.ModelSerializer):
   company = CompanySerializer(required=False)
   password=serializers.CharField(write_only=1)
   type=serializers.CharField(read_only=True)
+  location=serializers.CharField(required=False)
   pic=serializers.ImageField(required=False)
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'company','type','pic','profilepic','links','date_joined','password']
+    fields = ['id','name', 'email', 'number', 'company','type','pic','profilepic','links','date_joined','password','location']
   def create(self, validated_data):
         company_data = validated_data.pop('company', None)  
         validated_data['password'] = make_password(validated_data['password'])
@@ -97,6 +98,7 @@ class UserStudentSerializer(serializers.ModelSerializer):
   type=serializers.CharField(read_only=True)
   pic=serializers.ImageField(required=False)
   cv_input=serializers.FileField(required=False)
+  location=serializers.CharField(required=False)
   def create(self,validated_data):
         Student_data = None
         if 'student' in validated_data:
@@ -147,4 +149,4 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return instance
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password']
+    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location']
