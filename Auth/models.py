@@ -77,7 +77,7 @@ class MyAccountManager(BaseUserManager):
         return user
 
 class User(AbstractBaseUser,PermissionsMixin):
-    place=models.CharField(max_length=50,null=True)
+    location=models.CharField(max_length=50,null=True)
     name = models.CharField(max_length=100, unique=True)
     email = models.EmailField(max_length=100, unique=True)
     password = models.CharField(max_length=100)
