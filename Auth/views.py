@@ -225,8 +225,7 @@ class Signup(APIView):
        ser=serlaizers.UserStudentSerializer(data=data)
        if ser.is_valid():
          ser.save(type='Student')
-         user=models.User.objects.get(id=ser.data['id'])
-         refresh=RefreshToken.for_user(user)
+         refresh=RefreshToken.for_user(ser.instance)
          access_token = refresh.access_token
          return Response({'user':ser.data,'refresh':str(refresh),'access':str(access_token)})
        return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
@@ -234,8 +233,7 @@ class Signup(APIView):
        ser=serlaizers.UserCompanySerializer(data=data)
        if ser.is_valid():
         ser.save(type='Company')
-        user=models.User.objects.get(id=ser.data['id'])
-        refresh=RefreshToken.for_user(user)
+        refresh=RefreshToken.for_user(ser.instance)
         access_token = refresh.access_token
         return Response({'user':ser.data,'refresh':str(refresh),'access':str(access_token)})
       return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
