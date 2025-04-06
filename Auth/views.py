@@ -14,6 +14,7 @@ from post import serializer as sr
 from django.contrib.auth.models import Permission
 from django.core.cache import cache
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from datetime import datetime
 import pytz
 from google.oauth2 import id_token
@@ -21,43 +22,153 @@ from google.auth.transport import requests as req
 import requests
 from django.http import JsonResponse
 from ProjectCore.settings import WEB_CLIENT_ID, APP_CLIENT_ID
-def linkedin_authenticate(request):
-    access_token = request.POST.get("access_token") or request.headers.get("Authorization")
 
-    if not access_token:
-        return JsonResponse({"error": "Access token required"}, status=400)
+class LinkedInAuthenticate(APIView):
+    @swagger_auto_schema(
+        operation_description="Authenticate a user using LinkedIn OAuth. This endpoint accepts a LinkedIn access token and returns user information along with JWT tokens for authentication.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'access_token': openapi.Schema(type=openapi.TYPE_STRING, description='LinkedIn access token'),
+            },
+            required=['access_token']
+        ),
+        responses={
+            200: openapi.Response(
+                description="Login successful",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                        'access_token': openapi.Schema(type=openapi.TYPE_STRING),
+                        'refresh_token': openapi.Schema(type=openapi.TYPE_STRING),
+                        'user': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                                'name': openapi.Schema(type=openapi.TYPE_STRING)
+                            }
+                        )
+                    }
+                )
+            ),
+            400: 'Invalid token or missing access token'
+        }
+    )
+    def post(self, request):
+        access_token = request.POST.get("access_token") or request.headers.get("Authorization")
 
-    linkedin_url = "https://api.linkedin.com/v2/me"
-    linkedin_email_url = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))"
+        if not access_token:
+            return JsonResponse({"error": "Access token required"}, status=400)
 
-    headers = {"Authorization": f"Bearer {access_token}"}
+        linkedin_url = "https://api.linkedin.com/v2/me"
+        linkedin_email_url = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))"
 
-    profile_response = requests.get(linkedin_url, headers=headers)
-    email_response = requests.get(linkedin_email_url, headers=headers)
+        headers = {"Authorization": f"Bearer {access_token}"}
 
-    if profile_response.status_code != 200 or email_response.status_code != 200:
-        return JsonResponse({"error": "Invalid LinkedIn token"}, status=400)
+        profile_response = requests.get(linkedin_url, headers=headers)
+        email_response = requests.get(linkedin_email_url, headers=headers)
 
-    profile_data = profile_response.json()
-    email_data = email_response.json()
-    
-    first_name = profile_data.get("localizedFirstName", "")
-    last_name = profile_data.get("localizedLastName", "")
-    email = email_data.get("elements", [{}])[0].get("handle~", {}).get("emailAddress", "")
+        if profile_response.status_code != 200 or email_response.status_code != 200:
+            return JsonResponse({"error": "Invalid LinkedIn token"}, status=400)
 
-    if not email:
-        return JsonResponse({"error": "Email not found"}, status=400)
+        profile_data = profile_response.json()
+        email_data = email_response.json()
+        
+        first_name = profile_data.get("localizedFirstName", "")
+        last_name = profile_data.get("localizedLastName", "")
+        email = email_data.get("elements", [{}])[0].get("handle~", {}).get("emailAddress", "")
 
-    user, _ = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": first_name+last_name, 'password':access_token,'profile_picture':profile_data.get("profilePicture", {}).get("displayImage", ""), 'type':None})
-    refresh = RefreshToken.for_user(user)
-    return JsonResponse({
-        "message": "Login successful",
-        "access_token": str(refresh.access_token),
-        "refresh_token": str(refresh),
-        "user": {"email": email, "name": f"{first_name} {last_name}"}
-    })
+        if not email:
+            return JsonResponse({"error": "Email not found"}, status=400)
+
+        user, _ = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": first_name+last_name, 'password':access_token,'profile_picture':profile_data.get("profilePicture", {}).get("displayImage", ""), 'type':None})
+        refresh = RefreshToken.for_user(user)
+        return JsonResponse({
+            "message": "Login successful",
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
+            "user": {"email": email, "name": f"{first_name} {last_name}"}
+        })
+
+class GoogleAuthenticate(APIView):
+    @swagger_auto_schema(
+        operation_description="Authenticate a user using Google OAuth. This endpoint accepts a Google ID token and returns user information along with JWT tokens for authentication.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id_token': openapi.Schema(type=openapi.TYPE_STRING, description='Google ID token'),
+            },
+            required=['id_token']
+        ),
+        responses={
+            200: openapi.Response(
+                description="Login successful",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                        'access_token': openapi.Schema(type=openapi.TYPE_STRING),
+                        'refresh_token': openapi.Schema(type=openapi.TYPE_STRING),
+                        'user': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'picture': openapi.Schema(type=openapi.TYPE_STRING),
+                                'type': openapi.Schema(type=openapi.TYPE_STRING)
+                            }
+                        )
+                    }
+                )
+            ),
+            400: 'Invalid token'
+        }
+    )
+    def post(self, request):
+        token = request.POST.get("id_token")  
+        try:
+            for client_id in [WEB_CLIENT_ID, APP_CLIENT_ID]:
+                try:
+                    decoded_token = id_token.verify_oauth2_token(token, req.Request(), client_id)
+                    break 
+                except Exception:
+                    continue
+            if decoded_token is None:
+                return JsonResponse({"error": "Invalid token"}, status=400)
+            email = decoded_token.get("email")
+            name = decoded_token.get("name")
+            picture = decoded_token.get("picture")
+            if not email:
+                return JsonResponse({"error": "Invalid token"}, status=400)
+            user, created = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": name,'password':token})
+            refresh = RefreshToken.for_user(user)
+            return JsonResponse({
+                "message": "Login successful",
+                "access_token": str(refresh.access_token),
+                "refresh_token": str(refresh),
+                "user": {"email": email, "name": name, "picture": picture,"type":None}
+            })
+        
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
 class addtype(APIView):
   permission_classes=[IsAuthenticated]
+  @swagger_auto_schema(
+      operation_description="Set the user type (student or company) for an authenticated user. This endpoint is used after initial registration to specify the user's role in the system.",
+      request_body=openapi.Schema(
+          type=openapi.TYPE_OBJECT,
+          properties={
+              'type': openapi.Schema(type=openapi.TYPE_STRING, description='User type (student/company)'),
+          },
+          required=['type']
+      ),
+      responses={
+          200: openapi.Response(description="Type added successfully"),
+          400: 'Invalid type provided'
+      }
+  )
   def put(self,request):
     user=request.user
     type=request.data['type']
@@ -75,34 +186,37 @@ class addtype(APIView):
         return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     else:
       return Response('Entre a valid type',status=status.HTTP_400_BAD_REQUEST)
-def google_authenticate(request):
-    token = request.POST.get("id_token")  
-    try:
-        for client_id in [WEB_CLIENT_ID, APP_CLIENT_ID]:
-            try:
-                decoded_token = id_token.verify_oauth2_token(token, req.Request(), client_id)
-                break 
-            except Exception:
-                continue
-        if decoded_token is None:
-            return JsonResponse({"error": "Invalid token"}, status=400)
-        email = decoded_token.get("email")
-        name = decoded_token.get("name")
-        picture = decoded_token.get("picture")
-        if not email:
-            return JsonResponse({"error": "Invalid token"}, status=400)
-        user, created = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": name,'password':token})
-        refresh = RefreshToken.for_user(user)
-        return JsonResponse({
-            "message": "Login successful",
-            "access_token": str(refresh.access_token),
-            "refresh_token": str(refresh),
-            "user": {"email": email, "name": name, "picture": picture,"type":None}
-        })
-    
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+
 class Signup(APIView):
+  @swagger_auto_schema(
+      operation_description="Register a new user in the system. This endpoint creates a new user account with the specified type (student or company), name, email, and password.",
+      request_body=openapi.Schema(
+          type=openapi.TYPE_OBJECT,
+          properties={
+              'type': openapi.Schema(type=openapi.TYPE_STRING, description='User type (student/company)'),
+              'name': openapi.Schema(type=openapi.TYPE_STRING),
+              'email': openapi.Schema(type=openapi.TYPE_STRING),
+              'password': openapi.Schema(type=openapi.TYPE_STRING),
+              'number': openapi.Schema(type=openapi.TYPE_INTEGER),
+          },
+          required=['type', 'name', 'email', 'password']
+      ),
+      responses={
+          200: openapi.Response(
+              description="Signup successful",
+              schema=openapi.Schema(
+                  type=openapi.TYPE_OBJECT,
+                  properties={
+                      'user': openapi.Schema(type=openapi.TYPE_OBJECT),
+                      'refresh': openapi.Schema(type=openapi.TYPE_STRING),
+                      'access': openapi.Schema(type=openapi.TYPE_STRING)
+                  }
+              )
+          ),
+          400: 'Invalid data provided',
+          405: 'Type not provided'
+      }
+  )
   def post(self,request):
     data=request.data
     type=data.get('type')
@@ -127,8 +241,34 @@ class Signup(APIView):
       return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     return Response({'add type'},status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-
 class Login(APIView):
+  @swagger_auto_schema(
+      operation_description="Authenticate a user with email/name and password. This endpoint returns user information and JWT tokens for authentication.",
+      request_body=openapi.Schema(
+          type=openapi.TYPE_OBJECT,
+          properties={
+              'name/email': openapi.Schema(type=openapi.TYPE_STRING),
+              'password': openapi.Schema(type=openapi.TYPE_STRING),
+          },
+          required=['password']
+      ),
+      responses={
+          200: openapi.Response(
+              description="Login successful",
+              schema=openapi.Schema(
+                  type=openapi.TYPE_OBJECT,
+                  properties={
+                      'user': openapi.Schema(type=openapi.TYPE_OBJECT),
+                      'refresh': openapi.Schema(type=openapi.TYPE_STRING),
+                      'access': openapi.Schema(type=openapi.TYPE_STRING)
+                  }
+              )
+          ),
+          400: 'Email or password required',
+          401: 'Password incorrect',
+          404: 'User does not exist'
+      }
+  )
   def post(self,request):
     name=request.data.get('name')
     email=request.data.get('email')
@@ -152,9 +292,19 @@ class Login(APIView):
     except models.User.DoesNotExist:
       return Response({'User Dosent exist'},status=status.HTTP_404_NOT_FOUND)
 
-
 class acc(APIView):
   permission_classes=[IsAuthenticated]
+  @swagger_auto_schema(
+      operation_description="Delete a user account. This endpoint requires the user's password for confirmation.",
+      manual_parameters=[
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: openapi.Response(description="Operation successful"),
+          401: 'Unauthorized',
+          400: 'Bad request'
+      }
+  )
   def delete(self,request):
     user=models.User.objects.get(id=request.user.id)
     password=request.data.get('password')
@@ -164,6 +314,18 @@ class acc(APIView):
         return Response({'user deleted succefuly'})
       return Response({'incorect password'},status=status.HTTP_401_UNAUTHORIZED)
     return Response({'add password'},status=status.HTTP_400_BAD_REQUEST)
+  
+  @swagger_auto_schema(
+      operation_description="Update a user's profile information. This endpoint allows users to modify their profile details.",
+      manual_parameters=[
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: openapi.Response(description="Operation successful"),
+          401: 'Unauthorized',
+          400: 'Bad request'
+      }
+  )
   def put(self,request):
     user=request.user
     data=request.data
@@ -180,6 +342,17 @@ class acc(APIView):
        return Response(ser.data)
       return Response(ser.errors)
 
+  @swagger_auto_schema(
+      operation_description="Get the current user's profile information. This endpoint returns the authenticated user's profile details.",
+      manual_parameters=[
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: openapi.Response(description="Operation successful"),
+          401: 'Unauthorized',
+          400: 'Bad request'
+      }
+  )
   def get(self,request):
      user=request.user
      if user.company:
@@ -187,7 +360,30 @@ class acc(APIView):
      elif user.student:
        ser=serlaizers.UserStudentSerializer(user)
      return Response(ser.data)
+
 class ForgotPass(APIView):
+  @swagger_auto_schema(
+      operation_description="Request a password reset. This endpoint sends an OTP to the user's email for password reset verification.",
+      request_body=openapi.Schema(
+          type=openapi.TYPE_OBJECT,
+          properties={
+              'email/name': openapi.Schema(type=openapi.TYPE_STRING),
+          }
+      ),
+      responses={
+          200: openapi.Response(
+              description="OTP sent successfully",
+              schema=openapi.Schema(
+                  type=openapi.TYPE_OBJECT,
+                  properties={
+                      'otp': openapi.Schema(type=openapi.TYPE_STRING),
+                      'iat': openapi.Schema(type=openapi.TYPE_STRING)
+                  }
+              )
+          ),
+          404: 'User does not exist'
+      }
+  )
   def post(self,request):
     email=request.data.get('email')
     name=request.data.get('name')
@@ -215,14 +411,50 @@ class ForgotPass(APIView):
 
 class Fcm(APIView):
   permission_classes=[IsAuthenticated]
+  @swagger_auto_schema(
+      operation_description="Register a Firebase Cloud Messaging (FCM) token for push notifications. This endpoint associates an FCM token with the authenticated user.",
+      manual_parameters=[
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      request_body=openapi.Schema(
+          type=openapi.TYPE_OBJECT,
+          properties={
+              'token': openapi.Schema(type=openapi.TYPE_STRING, description='FCM token'),
+          },
+          required=['token']
+      ),
+      responses={
+          200: 'Successfully registered FCM token',
+          400: 'Invalid data provided'
+      }
+  )
   def post(self,request):
     user=request.user
     ser=serlaizers.Fcmserlaizer(data=request.data)
     if ser.is_valid():
       ser.save()
+      ser.instance.user.add(user)
       return Response({'suceffuly'})
     return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
+
 class reset_password(APIView):
+  @swagger_auto_schema(
+      operation_description="Reset a user's password. This endpoint allows users to set a new password after receiving an OTP.",
+      request_body=openapi.Schema(
+          type=openapi.TYPE_OBJECT,
+          properties={
+              'name/email': openapi.Schema(type=openapi.TYPE_STRING),
+              'password': openapi.Schema(type=openapi.TYPE_STRING),
+          },
+          required=['password']
+      ),
+      responses={
+          200: 'Password changed successfully',
+          400: 'Invalid data provided',
+          404: 'User does not exist',
+          406: 'Password and OTP required'
+      }
+  )
   def put(self,request):
     email=request.data.get('email')
     name=request.data.get('name')
@@ -256,6 +488,17 @@ class reset_password(APIView):
     
 class getuser(APIView):
   permission_classes=[IsAuthenticated]
+  @swagger_auto_schema(
+      operation_description="Get a user's profile information by ID. This endpoint returns the profile details of a specific user.",
+      manual_parameters=[
+          openapi.Parameter('id', openapi.IN_PATH, description="User ID", type=openapi.TYPE_INTEGER),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: openapi.Response(description="User details retrieved successfully"),
+          404: 'User does not exist'
+      }
+  )
   def get(self,request,id):
     try:
       user=models.User.objects.get(id=id)
@@ -269,6 +512,17 @@ class getuser(APIView):
 
 class savedpost(APIView):
   permission_classes=[IsAuthenticated,permissions.IsStudent]
+  @swagger_auto_schema(
+      operation_description="Save an opportunity post to the user's saved posts. This endpoint allows students to bookmark opportunities they're interested in.",
+      manual_parameters=[
+          openapi.Parameter('id', openapi.IN_PATH, description="Post ID", type=openapi.TYPE_INTEGER),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful',
+          404: 'Post does not exist'
+      }
+  )
   def post(self,request,id):
     user =request.user 
     try:
@@ -279,6 +533,18 @@ class savedpost(APIView):
        return Response({'saved succefluy'})
     except Exception :
       return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+  
+  @swagger_auto_schema(
+      operation_description="Remove an opportunity post from the user's saved posts. This endpoint allows students to unbookmark opportunities.",
+      manual_parameters=[
+          openapi.Parameter('id', openapi.IN_PATH, description="Post ID", type=openapi.TYPE_INTEGER),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful',
+          404: 'Post does not exist'
+      }
+  )
   def delete(self,request,id):
     user=request.user
     try:
@@ -293,15 +559,38 @@ class savedpost(APIView):
 
 class post(APIView):
   permission_classes=[IsAuthenticated,permissions.IsStudent]
+  @swagger_auto_schema(
+      operation_description="Get all saved opportunity posts for the authenticated student. This endpoint returns a list of opportunities that the student has bookmarked.",
+      manual_parameters=[
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: openapi.Response(
+              description="Saved posts retrieved successfully",
+              
+          )
+      }
+  )
   def get(self,request):
     user=request.user
     ser=sr.opportunity_serializer(user.student.savedposts,many=True)
     return Response(ser.data)
+
 class notfication(APIView):
   permission_classes=[IsAuthenticated]
+  @swagger_auto_schema(
+      operation_description="Mark a notification as seen. This endpoint updates the status of a notification to indicate that the user has viewed it.",
+      manual_parameters=[
+          openapi.Parameter('id', openapi.IN_PATH, description="Notification ID", type=openapi.TYPE_INTEGER),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Notification updated successfully'
+      }
+  )
   def put(self,request,id):
     user=request.user
-    notf=models.Notfications.objects.filter(id=id).update(isseen=True)
+    models.Notfications.objects.filter(id=id ,user=user).update(isseen=True)
     return Response({'updated'})
   
 

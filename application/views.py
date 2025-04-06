@@ -14,9 +14,33 @@ from Auth import tasks as tsk
 from drf_yasg.utils import swagger_auto_schema
 from . import documents
 from elasticsearch_dsl.query import Q as Query
+from drf_yasg import openapi
+
 # Create your views here.
 class applications(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
+    @swagger_auto_schema(
+        operation_description="Submit an application for an opportunity. This endpoint allows students to apply for opportunities either individually or as part of a team.",
+        manual_parameters=[
+            openapi.Parameter('id', openapi.IN_PATH, description="Opportunity ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING),
+            openapi.Parameter('team', openapi.IN_HEADER, description="Team name", type=openapi.TYPE_STRING, required=False)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'message': openapi.Schema(type=openapi.TYPE_STRING, description='Application message'),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Application created successfully"),
+            400: 'Invalid data provided or already applied',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Opportunity or team not found',
+            226: 'Opportunity is closed'
+        }
+    )
     def post(self,request,id):
         user=request.user 
         data=request.data
@@ -83,9 +107,22 @@ class applications(APIView):
             return Response({"team does'nt exist"},status=status.HTTP_404_NOT_FOUND)
         except Opportunity.DoesNotExist:
             return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
-        
+
 class accept_application(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
+    @swagger_auto_schema(
+        operation_description="Accept a team application. This endpoint allows team members to approve an application submitted on behalf of their team.",
+        manual_parameters=[
+            openapi.Parameter('id', openapi.IN_PATH, description="Application ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(description="Application accepted successfully"),
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Application not found'
+        }
+    )
     def post(self,request,id):
         user=request.user
         try:
@@ -99,8 +136,22 @@ class accept_application(APIView):
             return Response({'accepted'})
         except Application.DoesNotExist:
             return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+
 class reject_application(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
+    @swagger_auto_schema(
+        operation_description="Reject a team application. This endpoint allows team members to reject an application submitted on behalf of their team.",
+        manual_parameters=[
+            openapi.Parameter('id', openapi.IN_PATH, description="Application ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(description="Application rejected successfully"),
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Application not found'
+        }
+    )
     def post(self,request,id):
         user=request.user
         try:
@@ -114,6 +165,19 @@ class reject_application(APIView):
 
 class deleteapplication(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
+    @swagger_auto_schema(
+        operation_description="Delete an application. This endpoint allows students to withdraw their applications for opportunities.",
+        manual_parameters=[
+            openapi.Parameter('id', openapi.IN_PATH, description="Application ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(description="Application deleted successfully"),
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Application not found'
+        }
+    )
     def delete(self,request,id):
         user=request.user
         try:
@@ -122,8 +186,30 @@ class deleteapplication(APIView):
             return Response({'item deleted'})
         except Application.DoesNotExist:
             return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+
 class application_crud(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
+    @swagger_auto_schema(
+        operation_description="Get all applications for the authenticated student. This endpoint returns a list of opportunities the student has applied for and their application details.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(
+                description="Applications retrieved successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'post': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
+                        'application': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+                    }
+                )
+            ),
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
     def get(self,request):
         user=request.user
         try:
@@ -134,8 +220,28 @@ class application_crud(APIView):
             return Response({'post':ser.data,'application':se.data})
         except Exception as e:
             return Response({'error':str(e)},status=status.HTTP_404_NOT_FOUND)
+
 class company_app_management(APIView):
     permission_classes=[IsAuthenticated,permissions.IsCompany]
+    @swagger_auto_schema(
+        operation_description="Get all approved applications for a specific opportunity. This endpoint allows companies to view applications that have been approved by teams.",
+        manual_parameters=[
+            openapi.Parameter('id', openapi.IN_PATH, description="Opportunity ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(
+                description="Applications retrieved successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                )
+            ),
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
     def get(self,request,id):
         user=request.user
         try:
@@ -145,8 +251,35 @@ class company_app_management(APIView):
             return Response(ser.data)
         except Exception as e:
             return Response(e,status=status.HTTP_404_NOT_FOUND)
+
 class choose_app(APIView):
     permission_classes=[IsAuthenticated,permissions.IsCompany]
+    @swagger_auto_schema(
+        operation_description="Select applications to accept for an opportunity. This endpoint allows companies to choose which applications to accept and close the opportunity.",
+        manual_parameters=[
+            openapi.Parameter('id', openapi.IN_PATH, description="Opportunity ID", type=openapi.TYPE_INTEGER),
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_INTEGER), description='List of application IDs to accept')
+            },
+            required=['id']
+        ),
+        responses={
+            200: openapi.Response(
+                description="Applications accepted successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                )
+            ),
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Opportunity not found'
+        }
+    )
     def post(self,request,id):
         ids=request.data.get('id',[])
         user=request.user
@@ -162,8 +295,31 @@ class choose_app(APIView):
          return Response(ser.data)
         except Opportunity.DoesNotExist:
             return Response({'post does not exist'},status=status.HTTP_404_NOT_FOUND)
-class  search(APIView):
+
+class search(APIView):
     permission_classes=[IsAuthenticated]
+    @swagger_auto_schema(
+        operation_description="Search for opportunities and companies. This endpoint allows users to search for opportunities and companies based on a query string.",
+        manual_parameters=[
+            openapi.Parameter('q', openapi.IN_QUERY, description="Search query", type=openapi.TYPE_STRING),
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(
+                description="Search results retrieved successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'opportunity': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
+                        'company': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+                    }
+                )
+            ),
+            400: 'Query is required',
+            401: 'Unauthorized',
+            404: 'Not found'
+        }
+    )
     def get(self,request):
         user=request.user
         try:

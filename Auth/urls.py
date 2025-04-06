@@ -12,7 +12,7 @@ urlpatterns = [
     path('post/<int:id>/',views.savedpost.as_view()),
     path('post',views.post.as_view()),
     path('Fcm',views.Fcm.as_view()),
-    path('google',views.google_authenticate),
-    path('linkdein',views.linkedin_authenticate),
+    path('google',views.GoogleAuthenticate.as_view()),
+    path('linkdein',views.LinkedInAuthenticate.as_view()),
     path('notfi',views.notfication.as_view()),
 ]

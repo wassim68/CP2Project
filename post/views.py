@@ -1,4 +1,3 @@
-
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,239 +11,439 @@ from Auth.serlaizers import UserStudentSerializer
 from itertools import chain
 from Auth import permissions
 from django.db.models import Q
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
+@swagger_auto_schema(
+    operation_description="Get all opportunities. For companies, this returns only their own opportunities. For other users, this returns all opportunities.",
+    manual_parameters=[
+        openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'title': openapi.Schema(type=openapi.TYPE_STRING),
+            'description': openapi.Schema(type=openapi.TYPE_STRING),
+            'Type': openapi.Schema(type=openapi.TYPE_STRING),
+            'category': openapi.Schema(type=openapi.TYPE_STRING),
+            'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
+            'worktype': openapi.Schema(type=openapi.TYPE_STRING),
+        }
+    ),
+    responses={
+        200: openapi.Response(description="Operation successful"),
+        201: openapi.Response(description="Created successfully"),
+        204: openapi.Response(description="Deleted successfully"),
+        400: 'Invalid data provided',
+        401: 'Unauthorized',
+        403: 'Forbidden',
+        404: 'Not found'
+    }
+)
 class opportunity_crud(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self,request,*args, **kwargs):
+    def get(self,request):
         user = request.user
-        if not user.type.lower() == 'company':
-            return Response({"details" : "unable to get data"},status=status.HTTP_401_UNAUTHORIZED)
-
-        opportunities = user.opportunity.all()
-
-        if opportunities.exists() :
-            #if not user.has_perm('post.view_Opportunity',opportunities):
-                #return Response({"detail" : "no permission"},status= status.HTTP_403_FORBIDDEN)
-            ser = serializer.opportunity_serializer(instance = opportunities,many = True ) #change to true when fix
-            return Response({"data" : ser.data},status=status.HTTP_200_OK)
-        return Response({"details" : "no data"},status=status.HTTP_204_NO_CONTENT)
+        if user.has_perm('Auth.company'):
+            post = models.Opportunity.objects.filter(company=user)
+        else:
+            post = models.Opportunity.objects.all()
+        ser = serializer.opportunity_serializer(post, many=True)
+        return Response(ser.data)
     
+    @swagger_auto_schema(
+        operation_description="Create a new opportunity. This endpoint allows companies to post new opportunities for students to apply.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'title': openapi.Schema(type=openapi.TYPE_STRING),
+                'description': openapi.Schema(type=openapi.TYPE_STRING),
+                'Type': openapi.Schema(type=openapi.TYPE_STRING),
+                'category': openapi.Schema(type=openapi.TYPE_STRING),
+                'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
+                'worktype': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            201: openapi.Response(description="Created successfully"),
+            204: openapi.Response(description="Deleted successfully"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def post(self, request):
+        user = request.user
+        if user.has_perm('Auth.company'):
+            ser = serializer.opportunity_serializer(data=request.data)
+            if ser.is_valid():
+                ser.save(company=user)
+                return Response(ser.data, status=status.HTTP_201_CREATED)
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'you are not a company'}, status=status.HTTP_403_FORBIDDEN)
     
+    @swagger_auto_schema(
+        operation_description="Update an existing opportunity. This endpoint allows companies to modify details of their posted opportunities.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'title': openapi.Schema(type=openapi.TYPE_STRING),
+                'description': openapi.Schema(type=openapi.TYPE_STRING),
+                'Type': openapi.Schema(type=openapi.TYPE_STRING),
+                'category': openapi.Schema(type=openapi.TYPE_STRING),
+                'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
+                'worktype': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            201: openapi.Response(description="Created successfully"),
+            204: openapi.Response(description="Deleted successfully"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def put(self, request):
+        user = request.user
+        if user.has_perm('Auth.company'):
+            try:
+                post = models.Opportunity.objects.get(id=request.data['id'], company=user)
+                ser = serializer.opportunity_serializer(post, data=request.data, partial=True)
+                if ser.is_valid():
+                    ser.save()
+                    return Response(ser.data)
+                return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+            except models.Opportunity.DoesNotExist:
+                return Response({'post does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a company'}, status=status.HTTP_403_FORBIDDEN)
     
-    def post(self, request, *args, **kwargs):
+    @swagger_auto_schema(
+        operation_description="Delete an opportunity. This endpoint allows companies to remove their posted opportunities.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'title': openapi.Schema(type=openapi.TYPE_STRING),
+                'description': openapi.Schema(type=openapi.TYPE_STRING),
+                'Type': openapi.Schema(type=openapi.TYPE_STRING),
+                'category': openapi.Schema(type=openapi.TYPE_STRING),
+                'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
+                'worktype': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            201: openapi.Response(description="Created successfully"),
+            204: openapi.Response(description="Deleted successfully"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def delete(self, request):
         user = request.user
-        data = request.data
-        if not user.type.lower() == 'company':
-            return Response({"details" : "unable to get data"},status=status.HTTP_401_UNAUTHORIZED)
-        ser = serializer.opportunity_serializer(data = data)
-        if not ser.is_valid():
-            return Response({"details" : "invalid data", "errors": ser.errors},status=status.HTTP_400_BAD_REQUEST)
-        #if not user.has_perm('post.post_Opportunity'):
-            #return Response({"detail" : "no permission"},status= status.HTTP_403_FORBIDDEN)
-        ser.save(company = user)
-        return Response({"details" : "created","data" : ser.data},status=status.HTTP_201_CREATED)
+        if user.has_perm('Auth.company'):
+            try:
+                post = models.Opportunity.objects.get(id=request.data['id'], company=user)
+                post.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            except models.Opportunity.DoesNotExist:
+                return Response({'post does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a company'}, status=status.HTTP_403_FORBIDDEN)
 
-    def put(self, request, *args, **kwargs):
-        user = request.user
-        data = request.data
-        if not user.type.lower() == 'company':
-            return Response({"details" : "unable to get data"},status=status.HTTP_401_UNAUTHORIZED)
-        id = data.get('id')
-        if id is None :
-            return Response({"details" : "ID not provided"},status=status.HTTP_400_BAD_REQUEST)
-        opp = user.opportunity.filter(id=id).first()
-        if opp is None:
-            return Response({"details" : "opportunity not found"},status=status.HTTP_404_NOT_FOUND)
-        ser = serializer.opportunity_serializer(instance = opp,data = data,partial = True)
-        if not ser.is_valid():
-            return Response({"details" : "invalid data", "errors": serializer.errors},status=status.HTTP_400_BAD_REQUEST)
-        #if not user.has_perm('change.view_Opportunity',opp):
-            #return Response({"detail" : "no permission"},status= status.HTTP_403_FORBIDDEN)
-        ser.save()
-        return Response({"details" : "updated"},status=status.HTTP_200_OK)
-
-    def delete(self,request,*args, **kwargs):
-        user = request.user
-        data = request.data
-        if  not user.type.lower() == 'company':
-            return Response({"details" : "unable to get data"},status=status.HTTP_401_UNAUTHORIZED)
-        id = data.get('id')
-        if id is None :
-            return Response({"details" : "ID not provided"},status=status.HTTP_400_BAD_REQUEST)
-        opp = user.opportunity.filter(id=id).first()
-        if opp is not None:
-            #if not user.has_perm('delete.view_Opportunity',opportunities):
-                #return Response({"detail" : "no permission"},status= status.HTTP_403_FORBIDDEN)
-            opp.delete()
-
-        return Response({"details" : "deleted"},status=status.HTTP_200_OK)    
-
-
+@swagger_auto_schema(
+    operation_description="Get all teams for the authenticated student. This endpoint returns a list of teams that the student is a member of.",
+    manual_parameters=[
+        openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'name': openapi.Schema(type=openapi.TYPE_STRING),
+            'emails': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+        }
+    ),
+    responses={
+        200: openapi.Response(description="Operation successful"),
+        201: openapi.Response(description="Created successfully"),
+        204: openapi.Response(description="Deleted successfully"),
+        400: 'Invalid data provided',
+        401: 'Unauthorized',
+        403: 'Forbidden',
+        404: 'Not found'
+    }
+)
 class team_crud(APIView):
     permission_classes = [IsAuthenticated]
-
-    def get(self,request,*args, **kwargs):
+    def get(self,request):
         user = request.user
-        if not user.type.lower() == 'student':
-            return Response({"details" : "unable to get data"},status=status.HTTP_401_UNAUTHORIZED)
-        teams = user.teams.all()
-        if teams.exists() :
-            ser = serializer.team_serializer(instance = teams,many = True ) 
-            return Response({"data" : ser.data},status=status.HTTP_200_OK)
-        return Response({"details" : "no data"},status=status.HTTP_204_NO_CONTENT)
+        if user.has_perm('Auth.student'):
+            team = models.Team.objects.filter(students=user)
+            ser = serializer.team_serializer(team, many=True)
+            return Response(ser.data)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
-    
-    
-    def post(self, request, *args, **kwargs):
-        # Ensure the user has the correct permissions (if needed)
+    @swagger_auto_schema(
+        operation_description="Create a new team. This endpoint allows students to create teams for collaborative applications.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                'emails': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            201: openapi.Response(description="Created successfully"),
+            204: openapi.Response(description="Deleted successfully"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def post(self, request):
         user = request.user
-        data = request.data
-        
-        if not user.type.lower() == 'student':
-            return Response({"details": "unable to get data"}, status=status.HTTP_401_UNAUTHORIZED)
-
-        # Extract the list of student emails from the request data
-        emails = data.get('emails')
-        if not emails:
-            return Response({"details": "invalid data", "errors": "students' emails not provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-        users = User.objects.filter(email__in=emails, student__isnull=False)
-
-        # If no students are found, return an errorall()
-
-        if not users.exists():
-            return Response({"details": "invalid data", "errors": "invalid emails"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Serialize the team data and create the team instance
-        ser = serializer.team_serializer(data=data)
-        if not ser.is_valid():
-            return Response({"details": "invalid data", "errors": ser.errors}, status=status.HTTP_400_BAD_REQUEST)
-        
-  
-        team_instance = ser.save()
-
-        team_instance.students.set(list(chain(users, [user])))
-        team_instance.leader = user
-        team_instance.save()
-
-        return Response({"details": "created", "data": ser.data}, status=status.HTTP_201_CREATED)
+        if user.has_perm('Auth.student'):
+            ser = serializer.team_serializer(data=request.data)
+            if ser.is_valid():
+                ser.save()
+                team = models.Team.objects.get(id=ser.data['id'])
+                team.students.add(user)
+                return Response(ser.data, status=status.HTTP_201_CREATED)
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
-    def put(self, request, *args, **kwargs):
+    @swagger_auto_schema(
+        operation_description="Update an existing team. This endpoint allows students to modify details of their teams.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                'emails': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            201: openapi.Response(description="Created successfully"),
+            204: openapi.Response(description="Deleted successfully"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def put(self, request):
         user = request.user
-        data = request.data
-        if not user.type.lower() == 'student':
-            return Response({"details" : "unable to get data"},status=status.HTTP_401_UNAUTHORIZED)
-        id = data.get('id')
-        if id is None :
-            return Response({"details" : "ID not provided"},status=status.HTTP_400_BAD_REQUEST)
-        team = user.owned_teams.all().filter(id=id).first()
-        if team is None:
-            return Response({"details" : "opportunity not found"},status=status.HTTP_404_NOT_FOUND)
-        ser = serializer.team_serializer(instance = team,data = data,partial = True)
-        if not ser.is_valid():
-            return Response({"details" : "invalid data", "errors": ser.errors},status=status.HTTP_400_BAD_REQUEST)
-        #if not user.has_perm('change.view_Opportunity',opp):
-            #return Response({"detail" : "no permission"},status= status.HTTP_403_FORBIDDEN)
-        ser.save()
-        return Response({"details" : "updated"},status=status.HTTP_200_OK)
-
-    def delete(self,request,*args, **kwargs):
+        if user.has_perm('Auth.student'):
+            try:
+                team = models.Team.objects.get(id=request.data['id'], students=user)
+                ser = serializer.team_serializer(team, data=request.data, partial=True)
+                if ser.is_valid():
+                    ser.save()
+                    return Response(ser.data)
+                return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+            except models.Team.DoesNotExist:
+                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+    
+    @swagger_auto_schema(
+        operation_description="Delete a team. This endpoint allows students to remove their teams.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                'emails': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            201: openapi.Response(description="Created successfully"),
+            204: openapi.Response(description="Deleted successfully"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def delete(self, request):
         user = request.user
-        data = request.data
-        if  not user.type.lower() == 'student':
-            return Response({"details" : "unable to get data"},status=status.HTTP_401_UNAUTHORIZED)
-        id = data.get('id')
-        if id is None :
-            return Response({"details" : "teamID not provided"},status=status.HTTP_400_BAD_REQUEST)
-        
-        team = user.owned_teams.all().filter(id=id).first()
-        if team is None:
-            return Response({"details" : "notfound or no permission"},status=status.HTTP_403_FORBIDDEN)    
-        
-        team.delete()
-        return Response({"details" : "deleted"},status=status.HTTP_200_OK)    
+        if user.has_perm('Auth.student'):
+            try:
+                team = models.Team.objects.get(id=request.data['id'], students=user)
+                team.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            except models.Team.DoesNotExist:
+                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
 
+@swagger_auto_schema(
+    operation_description="Add a student to a team. This endpoint allows team members to add other students to their teams.",
+    manual_parameters=[
+        openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'teamid': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'userid': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'useremail': openapi.Schema(type=openapi.TYPE_STRING),
+        }
+    ),
+    responses={
+        200: openapi.Response(description="Operation successful"),
+        400: 'Invalid data provided',
+        401: 'Unauthorized',
+        403: 'Forbidden',
+        404: 'Not found'
+    }
+)
 class team_managing(APIView):
-    def put(self,request,*args, **kwargs):#kick
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_description="Add a student to a team. This endpoint allows team members to add other students to their teams.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'teamid': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'userid': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'useremail': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def put(self, request):
         user = request.user
-        data = request.data
-
-        if  not user.type.lower() == 'student':
-            return Response({"details" : "must be a student"},status=status.HTTP_401_UNAUTHORIZED)
-        
-        teamid = data.get('teamid')
-        if teamid is None :
-            return Response({"details" : "teamID not provided"},status=status.HTTP_400_BAD_REQUEST)
-        userid = data.get('userid')
-        if userid is None :
-            return Response({"details" : "userID not provided"},status=status.HTTP_400_BAD_REQUEST)
-        
-        team = user.owned_teams.filter(id=teamid).first()
-
-        if team is None:
-            return Response({"details" : "notfound or no permission"},status=status.HTTP_403_FORBIDDEN) 
-        
-        removed_user = team.students.filter(id=userid).first()
-        if removed_user is None:
-            return Response({"details" : "user not found"},status=status.HTTP_404_NOT_FOUND)
-        
-        if user == removed_user :
-            return Response({"details" : "can't kick youself"},status=status.HTTP_403_FORBIDDEN)
-        team.students.remove(removed_user)
-        return Response({"details" : "kicked"},status=status.HTTP_200_OK)
-        
-    def post(self,request,*args, **kwargs):
+        if user.has_perm('Auth.student'):
+            try:
+                team = models.Team.objects.get(id=request.data['teamid'], students=user)
+                if 'userid' in request.data:
+                    student = models.User.objects.get(id=request.data['userid'])
+                    if student.has_perm('Auth.student'):
+                        team.students.add(student)
+                        return Response({'student added'})
+                    return Response({'user is not a student'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'userid is required'}, status=status.HTTP_400_BAD_REQUEST)
+            except models.Team.DoesNotExist:
+                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            except models.User.DoesNotExist:
+                return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+    
+    @swagger_auto_schema(
+        operation_description="Add a student to a team using their email. This endpoint allows team members to add other students to their teams by email address.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'teamid': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'userid': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'useremail': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def post(self, request):
         user = request.user
-        data = request.data
-
-        if  not user.type.lower() == 'student':
-            return Response({"details" : "must be a student"},status=status.HTTP_401_UNAUTHORIZED)
-        
-        teamid = data.get('teamid')
-        if teamid is None :
-            return Response({"details" : "teamID not provided"},status=status.HTTP_400_BAD_REQUEST)
-        useremail = data.get('useremail')
-        if useremail is None :
-            return Response({"details" : "useremail not provided"},status=status.HTTP_400_BAD_REQUEST)
-        
-        team = user.owned_teams.filter(id=teamid).first()
-
-        if team is None:
-            return Response({"details" : "notfound or no permission"},status=status.HTTP_403_FORBIDDEN) 
-        
-        added_user = User.objects.filter(email=useremail).first()
-        if added_user is None:
-            return Response({"details" : "user not found"},status=status.HTTP_404_NOT_FOUND)
-        
-        check_user = team.students.filter(email=useremail).first()
-        if check_user == added_user :
-            return Response({"details" : "user already in team"},status=status.HTTP_403_FORBIDDEN)
-        team.students.add(added_user)
-        return Response({"details" : "added"},status=status.HTTP_200_OK)
-
-    def delete(self,request,*args, **kwargs):
+        if user.has_perm('Auth.student'):
+            try:
+                team = models.Team.objects.get(id=request.data['teamid'], students=user)
+                if 'useremail' in request.data:
+                    student = models.User.objects.get(email=request.data['useremail'])
+                    if student.has_perm('Auth.student'):
+                        team.students.add(student)
+                        return Response({'student added'})
+                    return Response({'user is not a student'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'useremail is required'}, status=status.HTTP_400_BAD_REQUEST)
+            except models.Team.DoesNotExist:
+                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            except models.User.DoesNotExist:
+                return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+    
+    @swagger_auto_schema(
+        operation_description="Remove a student from a team. This endpoint allows team members to remove other students from their teams.",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'teamid': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'userid': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'useremail': openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def delete(self, request):
         user = request.user
-        data = request.data
-
-        if  not user.type.lower() == 'student':
-            return Response({"details" : "must be a student"},status=status.HTTP_401_UNAUTHORIZED)
-        
-        teamid = data.get('teamid')
-        if teamid is None :
-            return Response({"details" : "teamID not provided"},status=status.HTTP_400_BAD_REQUEST)
-        team = user.teams.filter(id=teamid).first()
-
-        if team is None:
-            return Response({"details" : "team notfound"},status=status.HTTP_403_FORBIDDEN) 
-
-        team.students.remove(user)
-
-        if not team.students.all().exists() :
-            team.delete()
-            return Response({"details" : "left , empty team closed "},status=status.HTTP_200_OK) 
-        if team.leader == user :
-            new_leader = team.students.first()
-            team.leader = new_leader
-            return Response({"details": f"left, ownership changed to name:{new_leader.name} , id:{new_leader.id}"}, status=status.HTTP_200_OK)
-        return Response({"details" : "left"},status=status.HTTP_200_OK) 
+        if user.has_perm('Auth.student'):
+            try:
+                team = models.Team.objects.get(id=request.data['teamid'], students=user)
+                if 'userid' in request.data:
+                    student = models.User.objects.get(id=request.data['userid'])
+                    if student.has_perm('Auth.student'):
+                        team.students.remove(student)
+                        return Response({'student removed'})
+                    return Response({'user is not a student'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'userid is required'}, status=status.HTTP_400_BAD_REQUEST)
+            except models.Team.DoesNotExist:
+                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            except models.User.DoesNotExist:
+                return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
 
