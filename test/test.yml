@@ -1,0 +1,44 @@
+config:
+  target: "http://localhost:8000"
+  phases:
+    - duration: 60   # Warm-up phase (gradual load increase)
+      arrivalRate: 1  # Start slow to detect cold-start issues
+      rampTo: 3       # Ramp up to 5 users/sec over 60s
+    - duration: 120   # Sustained load phase
+      arrivalRate: 3  # Steady traffic (5 logins/sec)
+    - duration: 30    # Spike testing phase
+      arrivalRate: 7 # Sudden traffic burst (20 logins/sec)
+  plugins:
+    ensure: {}
+    apdex: {}
+    metrics-by-endpoint: {}
+  apdex:
+    threshold: 350
+  ensure:
+    thresholds:
+      - http.response_time.p99: 700
+      - http.response_time.p95: 400
+scenarios:
+  - flow:
+      - post:
+          url: "/Auth/Login"
+          json:
+            name: "test"
+            password: "test"
+          capture: 
+            json: "$.access"
+            as: token
+      - post:
+          url: "/Auth/post/1/"
+          headers:
+            Authorization: "Bearer {{ token }}"
+      - get:
+          url: "/Auth/post"
+          headers:
+            Authorization: "Bearer {{ token }}"
+      - delete:
+          url: "/Auth/post/1/"
+          headers:
+            Authorization: "Bearer {{ token }}"
+    
+
