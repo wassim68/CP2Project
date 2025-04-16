@@ -13,6 +13,9 @@ from Auth import permissions
 from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from .pagination import CustomPagination
+from .models import TeamInvite
+
 
 @swagger_auto_schema(
     operation_description="Get all opportunities. For companies, this returns only their own opportunities. For other users, this returns all opportunities.",
@@ -43,13 +46,18 @@ from drf_yasg import openapi
 )
 class opportunity_crud(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = [CustomPagination]
+
     def get(self,request):
         user = request.user
         if user.has_perm('Auth.company'):
             post = models.Opportunity.objects.filter(company=user)
         else:
             post = models.Opportunity.objects.all()
-        ser = serializer.opportunity_serializer(post, many=True)
+
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(post, request)
+        ser = serializer.opportunity_serializer(paginated_qs, many=True)
         return Response(ser.data)
     
     @swagger_auto_schema(
@@ -193,11 +201,15 @@ class opportunity_crud(APIView):
 )
 class team_crud(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = [CustomPagination]
+
     def get(self,request):
         user = request.user
         if user.has_perm('Auth.student'):
             team = models.Team.objects.filter(students=user)
-            ser = serializer.team_serializer(team, many=True)
+            paginator = CustomPagination()
+            paginated_qs = paginator.paginate_queryset(team, request)
+            ser = serializer.team_serializer(paginated_qs, many=True)
             return Response(ser.data)
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
@@ -226,12 +238,16 @@ class team_crud(APIView):
     )
     def post(self, request):
         user = request.user
+        data = request.data.copy()
+        data['students'] = [user.id]
         if user.has_perm('Auth.student'):
-            ser = serializer.team_serializer(data=request.data)
+            ser = serializer.team_serializer(data=data)
             if ser.is_valid():
-                ser.save()
+                ser.save(leader = user)
                 team = models.Team.objects.get(id=ser.data['id'])
-                team.students.add(user)
+                emails = data.get('emails')
+                students = User.objects.filter(email__in=emails,type = 'Student')
+                team.students.add(*students)
                 return Response(ser.data, status=status.HTTP_201_CREATED)
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
@@ -446,4 +462,156 @@ class team_managing(APIView):
             except models.User.DoesNotExist:
                 return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+
+class InviterTeamInvites(APIView):
+    permission_classes = [IsAuthenticated]
+    
+
+    #get the invites sent by user
+    def get(self,request):
+        user = request.user 
+        if user.has_perm('Auth.student'):
+            try:
+                
+                invites = TeamInvite.objects.filter(inviter=user.id)
+                paginator = CustomPagination()
+                paginated_qs = paginator.paginate_queryset(invites, request)
+                ser = serializer.TeamInviteSerializer(paginated_qs, many=True)
+                return paginator.get_paginated_response(ser.data)
+            except AttributeError:
+                return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+    #send an invite to a student by email
+    def post(self,request):
+        user = request.user
+        data = request.data
+        if not user.has_perm('Auth.student'):
+            return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            team_id = data.get('team_id')
+            if team_id is None :
+                return Response({'team_id not provided'},status=status.HTTP_400_BAD_REQUEST)
+            
+            team =   Team.objects.filter(id=team_id).first()
+            if team is None :
+                return Response({'team not found'},status=status.HTTP_404_NOT_FOUND)
+
+            invited_email = data.get('invited_email') 
+            if invited_email is None :
+                return Response({'invited_email not provided'},status=status.HTTP_400_BAD_REQUEST)
+
+            invited = User.objects.filter(email = invited_email,type='Student').first()
+            if invited is None :
+                return Response({'Student not found'},status=status.HTTP_404_NOT_FOUND)
+
+            if team.students.filter(id = invited.id).exists() :
+                return Response({'student already in team'},status=status.HTTP_400_BAD_REQUEST)
+
+            if user.id != team.leader.id : 
+                return Response({'must be the leader'},status=status.HTTP_403_FORBIDDEN)
+
+            ser = serializer.TeamInviteSerializer(data={
+            'team': team.id,  
+            'inviter': user.id,  
+            'receiver': invited.id,  
+            'status': 'pending'
+            })
+            if not ser.is_valid():
+                return Response({"details" : " invalid data" , "erros" : ser.errors},status=status.HTTP_400_BAD_REQUEST)
+            ser.save()
+            return Response({"details" : " invite sent" , "data" : ser.data})
+
+        except AttributeError:
+            return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+    #delete an invite sent by a user
+    def delete(self,request):
+        user = request.user
+        data = request.data
+        if not user.has_perm('Auth.student'):
+            return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+        
+        invite_id = data.get('invite_id')
+        if invite_id is None:
+            return Response({"details" : "invite id not provided" },status=status.HTTP_400_BAD_REQUEST)
+        invite = TeamInvite.objects.filter(id=invite_id).first()
+        if invite is None or invite.inviter.id != user.id:
+            return Response({"details" : "invite not found" },status=status.HTTP_404_NOT_FOUND)
+
+        invite.delete()
+        return Response({"details" : "deleted" },status=status.HTTP_200_OK)
+         
+class ReceiverTeamInvites(APIView):
+    permission_classes = [IsAuthenticated]
+    
+
+    #get the invites sent to user
+    def get(self,request):
+        user = request.user 
+        if user.has_perm('Auth.student'):
+            try:
+                
+                invites = TeamInvite.objects.filter(receiver=user.id,status="pending")
+                paginator = CustomPagination()
+                paginated_qs = paginator.paginate_queryset(invites, request)
+                ser = serializer.TeamInviteSerializer(paginated_qs, many=True)
+                return paginator.get_paginated_response(ser.data)
+            except AttributeError:
+                return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+
+    #accept a pending invite by id
+    def post(self,request):
+        user = request.user
+        data = request.data
+        if not user.has_perm('Auth.student'):
+            return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            invite_id = data.get('invite_id')
+            if invite_id is None:
+                return Response({"details" : "invite id not provided" },status=status.HTTP_400_BAD_REQUEST)
+            
+            invite = TeamInvite.objects.filter(id=invite_id).first()
+            if invite is None or invite.receiver.id != user.id or invite.status!="pending":
+                return Response({"details" : "invite not found" },status=status.HTTP_404_NOT_FOUND)        
+
+            team = invite.team
+            if team is None :
+                return Response({"details" : "team no longer exists" },status=status.HTTP_404_NOT_FOUND)
+
+            if team.students.filter(id= user.id).exists() : 
+                return Response({"details" : "user already in team" },status=status.HTTP_200_OK)
+
+            team.students.add(user)
+            invite.status = "accepted"
+            invite.save()
+            return Response({"details" : "accepted ,  user added" },status=status.HTTP_200_OK)
+
+        except AttributeError:
+            return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+    #reject an invite by id (the invite is not deleted)
+    def delete(self,request):
+        user = request.user
+        data = request.data
+        if not user.has_perm('Auth.student'):
+            return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            invite_id = data.get('invite_id')
+            if invite_id is None:
+                return Response({"details" : "invite id not provided" },status=status.HTTP_400_BAD_REQUEST)
+            
+            invite = TeamInvite.objects.filter(id=invite_id).first()
+            if invite is None or invite.receiver.id != user.id or invite.status!="pending":
+                return Response({"details" : "invite not found" },status=status.HTTP_404_NOT_FOUND)        
+
+            
+            invite.status = "rejected"
+            invite.save()
+            return Response({"details" : "invite rejected" },status=status.HTTP_200_OK)
+
+        except AttributeError:
+            return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+
 

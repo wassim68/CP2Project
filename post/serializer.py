@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Opportunity,Team
+from .models import Opportunity,Team,TeamInvite
 from Auth.serlaizers import UserStudentSerializer,SkillsSerializer,UserCompanySerializer
 from Auth.models import Skills
 
@@ -11,7 +11,8 @@ class team_serializer(serializers.ModelSerializer):
             'id',
             'name',
             'students',
-            'leader'
+            'leader',
+            'createdate',
         ]
 
 class opportunity_serializer(serializers.ModelSerializer):
@@ -47,3 +48,15 @@ class opportunity_serializer(serializers.ModelSerializer):
             'company'
         ]
         
+class TeamInviteSerializer(serializers.ModelSerializer):
+    class Meta :
+        model = TeamInvite
+        fields= [
+            'id',
+            'inviter',
+            'receiver',
+            'team',
+            'status',
+            'createdate'
+        ]
+        read_only_fields = ['id','createdate']
