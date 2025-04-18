@@ -9,4 +9,6 @@ urlpatterns = [
     path('team/managing/',views.team_managing.as_view()),
     path('team/inviter/',views.InviterTeamInvites.as_view()),
     path('team/receiver/',views.ReceiverTeamInvites.as_view()),
+    path('user/search',views.UserSearch.as_view()),
+    path('saved/search',views.Search_saved.as_view()),
 ]

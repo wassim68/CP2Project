@@ -22,6 +22,8 @@ from google.auth.transport import requests as req
 import requests
 from django.http import JsonResponse
 from ProjectCore.settings import WEB_CLIENT_ID, APP_CLIENT_ID
+from post.pagination import CustomPagination
+from post import serializer as post_serializers
 
 class LinkedInAuthenticate(APIView):
     @swagger_auto_schema(
@@ -510,6 +512,8 @@ class getuser(APIView):
 
 class savedpost(APIView):
   permission_classes=[IsAuthenticated,permissions.IsStudent]
+
+  
   @swagger_auto_schema(
       operation_description="Save an opportunity post to the user's saved posts. This endpoint allows students to bookmark opportunities they're interested in.",
       manual_parameters=[
@@ -596,4 +600,4 @@ class notfication(APIView):
 
 
 
-
+    

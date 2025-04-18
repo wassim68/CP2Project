@@ -342,7 +342,10 @@ class search(APIView):
             return Response({'error':str(e)},status=status.HTTP_404_NOT_FOUND)
 
 
+class search_applied(APIView):
+    authentication_classes = [IsAuthenticated,permissions.IsStudent]
 
+    
 
 
 
