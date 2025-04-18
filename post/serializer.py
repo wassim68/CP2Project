@@ -1,19 +1,42 @@
 from rest_framework import serializers
 from .models import Opportunity,Team,TeamInvite
-from Auth.serlaizers import UserStudentSerializer,SkillsSerializer,UserCompanySerializer
-from Auth.models import Skills
+from Auth.serlaizers import UserStudentSerializer,SkillsSerializer,UserCompanySerializer,StudentSerializer
+from Auth.models import Skills,User
 
 class team_serializer(serializers.ModelSerializer):
-    #students = UserStudentSerializer(required = False,many=True)
-    class Meta :
+    # Write-only: accept student and leader IDs
+    student_ids = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all(), write_only=True
+    )
+    leader_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), write_only=True
+    )
+
+    # Read-only: return full user objects
+    students = UserStudentSerializer(many=True, read_only=True)
+    leader = UserStudentSerializer(read_only=True)
+
+    class Meta:
         model = Team
-        fields = [
-            'id',
-            'name',
-            'students',
-            'leader',
-            'createdate',
-        ]
+        fields = ['id', 'name', 'student_ids', 'students', 'leader_id', 'leader', 'createdate']
+
+    def create(self, validated_data):
+        student_ids = validated_data.pop('student_ids', [])
+        leader = validated_data.pop('leader_id')
+        team = Team.objects.create(leader=leader, **validated_data)
+        team.students.set(student_ids)
+        return team
+
+    def update(self, instance, validated_data):
+        student_ids = validated_data.pop('student_ids', None)
+        leader = validated_data.pop('leader_id', None)
+        instance = super().update(instance, validated_data)
+        if student_ids is not None:
+            instance.students.set(student_ids)
+        if leader is not None:
+            instance.leader = leader
+            instance.save()
+        return instance
 
 class opportunity_serializer(serializers.ModelSerializer):
     company=UserCompanySerializer(required=False)
@@ -46,6 +69,7 @@ class opportunity_serializer(serializers.ModelSerializer):
             'skill_input',
             'worktype',
             'company'
+            ,'createdate'
         ]
         
 class TeamInviteSerializer(serializers.ModelSerializer):

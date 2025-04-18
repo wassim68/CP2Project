@@ -21,15 +21,20 @@ class StudentSerializer(serializers.ModelSerializer):
   skill_input = serializers.ListField(
       child=serializers.CharField(),
       required=False,
-      write_only=1)
+      write_only=True)
   skills = SkillsSerializer(many=True, required=False)
   class Meta:
     model = Student
-    fields = ['education','gendre','skills','rating','category','skill_input','cv']
+    fields = ['education','gendre','description','skills','rating','category','skill_input','cv']
   def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['skills'] = [skill['name'] for skill in representation['skills']]
-        return representation
+    representation = super().to_representation(instance)
+    
+    skills = representation.get('skills', [])
+    
+    if skills and isinstance(skills[0], dict) and 'name' in skills[0]:
+        representation['skills'] = [skill['name'] for skill in skills]
+
+    return representation
   def create(self, validated_data):
         skill_names = validated_data.pop('skill_input',[])
         student = Student.objects.create(**validated_data)
@@ -42,6 +47,7 @@ class StudentSerializer(serializers.ModelSerializer):
         skills = Skills.objects.filter(name__in=skill_names)
         instance.skills.set(skills)
         return instance
+  
 
 
 class UserCompanySerializer(serializers.ModelSerializer):

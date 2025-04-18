@@ -206,7 +206,7 @@ class team_crud(APIView):
     def get(self,request):
         user = request.user
         if user.has_perm('Auth.student'):
-            team = models.Team.objects.filter(students=user)
+            team = models.Team.objects.prefetch_related("students").filter(students=user)
             paginator = CustomPagination()
             paginated_qs = paginator.paginate_queryset(team, request)
             ser = serializer.team_serializer(paginated_qs, many=True)
@@ -239,16 +239,33 @@ class team_crud(APIView):
     def post(self, request):
         user = request.user
         data = request.data.copy()
-        data['students'] = [user.id]
+        data['student_ids'] = [user.id]
+        data['leader_id'] = user.id
         if user.has_perm('Auth.student'):
             ser = serializer.team_serializer(data=data)
             if ser.is_valid():
-                ser.save(leader = user)
+                ser.save()
                 team = models.Team.objects.get(id=ser.data['id'])
                 emails = data.get('emails')
-                students = User.objects.filter(email__in=emails,type = 'Student')
-                team.students.add(*students)
-                return Response(ser.data, status=status.HTTP_201_CREATED)
+                if emails is None:
+                    return Response({"details" : "team created , invites sent" , "data" : ser.data}, status=status.HTTP_201_CREATED)
+                students = User.objects.filter(email__in= emails , type = 'Student')
+
+                for student in students :
+                    if student is not None and student != user :
+                        invite_data = {
+                            "team" : team.id,
+                            "inviter" : user.id ,
+                            "receiver" : student.id,
+                            "status" : "pending" 
+
+                        }
+                        invite_ser = serializer.TeamInviteSerializer(data = invite_data)
+                        invite_ser.is_valid()
+                        invite_ser.save()
+                    
+
+                return Response({"details" : "team created , invites sent" , "data" : ser.data}, status=status.HTTP_201_CREATED)
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
@@ -492,6 +509,8 @@ class InviterTeamInvites(APIView):
             if team_id is None :
                 return Response({'team_id not provided'},status=status.HTTP_400_BAD_REQUEST)
             
+            
+            
             team =   Team.objects.filter(id=team_id).first()
             if team is None :
                 return Response({'team not found'},status=status.HTTP_404_NOT_FOUND)
@@ -521,8 +540,9 @@ class InviterTeamInvites(APIView):
             ser.save()
             return Response({"details" : " invite sent" , "data" : ser.data})
 
-        except AttributeError:
-            return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+        except AttributeError as e:
+            
+            return Response({"details" : " user not found" }, status=status.HTTP_404_NOT_FOUND)
 
     #delete an invite sent by a user
     def delete(self,request):
@@ -611,7 +631,7 @@ class ReceiverTeamInvites(APIView):
             return Response({"details" : "invite rejected" },status=status.HTTP_200_OK)
 
         except AttributeError:
-            return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"details" : " user not found" , "erros" :AttributeError.args }, status=status.HTTP_404_NOT_FOUND)
 
 
 
