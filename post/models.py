@@ -1,9 +1,17 @@
 from django.db import models
 from Auth.models import Student,Skills,company,User,CATEGORY_CHOICES
 from application.models import Application
+from Auth.models import Student
+
 TYPES = [
     ('internship', 'Internship'),
     ('Problem', 'Problem'),
+]
+
+INVITE_STATUS = [
+    ('pending', 'Pending'),
+    ('accepted', 'Accepted'),
+    ('rejected', 'Rejected'),
 ]
 
 OPPORTUNITY_STATUS = [
@@ -37,6 +45,18 @@ class Team(models.Model):
     name = models.CharField(max_length=255)
     students = models.ManyToManyField(User, related_name='teams')
     leader = models.ForeignKey(User, related_name='owned_teams', on_delete=models.CASCADE,null=True)
+    createdate = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
+    
+class TeamInvite(models.Model):
+    createdate = models.DateTimeField(auto_now_add=True)
+    inviter = models.ForeignKey(Student, verbose_name=("inviter"),blank=True, null=True,on_delete=models.SET_NULL,related_name="sent_invites")  
+    receiver = models.ForeignKey(Student, verbose_name=("receiver"),blank=True, null=True,on_delete=models.SET_NULL,related_name="pending_invites")   
+    status = models.CharField(choices=INVITE_STATUS,max_length=8,default='pending')
+    team = models.ForeignKey(Team,verbose_name="Team",null=False,on_delete=models.CASCADE,related_name="invites")
+
+    def __str__(self):
+        return f"Invite from {self.inviter} to {self.receiver}, Status: {self.status}"
+
