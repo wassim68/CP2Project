@@ -68,8 +68,12 @@ class opportunity_serializer(serializers.ModelSerializer):
             'endday',
             'skill_input',
             'worktype',
-            'company'
-            ,'createdate'
+
+       
+            'company',
+            'created_at',
+            'duration'
+
         ]
         
 class TeamInviteSerializer(serializers.ModelSerializer):
