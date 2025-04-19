@@ -21,7 +21,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as req
 import requests
 from django.http import JsonResponse
-from ProjectCore.settings import WEB_CLIENT_ID, APP_CLIENT_ID
+from ProjectCore.settings import WEB_CLIENT_ID, APP_CLIENT_ID,WEB_CLIENT_SECRET,REDIRECT_URI,LINKEDIN_CLIENT_ID,LINKEDIN_CLIENT_SECRET,LINKEDIN_REDIRECT_URI
+
 
 class LinkedInAuthenticate(APIView):
     @swagger_auto_schema(
@@ -46,7 +47,9 @@ class LinkedInAuthenticate(APIView):
                             type=openapi.TYPE_OBJECT,
                             properties={
                                 'email': openapi.Schema(type=openapi.TYPE_STRING),
-                                'name': openapi.Schema(type=openapi.TYPE_STRING)
+                                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'picture': openapi.Schema(type=openapi.TYPE_STRING),
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
                             }
                         )
                     }
@@ -56,40 +59,77 @@ class LinkedInAuthenticate(APIView):
         }
     )
     def post(self, request):
-        access_token = request.POST.get("access_token") or request.headers.get("Authorization")
-
-        if not access_token:
-            return JsonResponse({"error": "Access token required"}, status=400)
-
-        linkedin_url = "https://api.linkedin.com/v2/me"
-        linkedin_email_url = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))"
-
-        headers = {"Authorization": f"Bearer {access_token}"}
-
-        profile_response = requests.get(linkedin_url, headers=headers)
-        email_response = requests.get(linkedin_email_url, headers=headers)
-
-        if profile_response.status_code != 200 or email_response.status_code != 200:
-            return JsonResponse({"error": "Invalid LinkedIn token"}, status=400)
-
-        profile_data = profile_response.json()
-        email_data = email_response.json()
+        code = request.POST.get("code")
         
-        first_name = profile_data.get("localizedFirstName", "")
-        last_name = profile_data.get("localizedLastName", "")
-        email = email_data.get("elements", [{}])[0].get("handle~", {}).get("emailAddress", "")
+        if not code:
+            return JsonResponse({"error": "Authorization code required"}, status=400)
+        
+        try:
+            # Step 1: Exchange authorization code for access token
+            token_url = "https://www.linkedin.com/oauth/v2/accessToken"
+            data = {
+                'grant_type': 'authorization_code',
+                'code': code,
+                'client_id': LINKEDIN_CLIENT_ID,
+                'client_secret': LINKEDIN_CLIENT_SECRET,
+                'redirect_uri': LINKEDIN_REDIRECT_URI
+            }
+            
+            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            token_response = requests.post(token_url, data=data, headers=headers)
+            token_data = token_response.json()
+            
+            if 'access_token' not in token_data:
+                return JsonResponse({"error": "Failed to get access token from LinkedIn"}, status=400)
+            
+            access_token = token_data['access_token']
+            
+            profile_url = "https://api.linkedin.com/v2/userinfo"
+            profile_headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Connection': 'Keep-Alive'
+            }
+            
+            profile_response = requests.get(profile_url, headers=profile_headers)
+            profile_data = profile_response.json()
+            
+            email = profile_data.get('email')
+            name = f"{profile_data.get('given_name', '')} {profile_data.get('family_name', '')}".strip()
+            picture = profile_data.get('picture') 
+            if not email:
+                return JsonResponse({"error": "Email not provided by LinkedIn"}, status=400)
+            
+            user, _ = models.User.objects.get_or_create(
+                email=email,
+                defaults={
+                    "email": email,
+                    "name": user.name,  
+                    'password': code,  
+                    'picture': picture,
+                    'id':user.id,
+                }
+            )
+            
+            # Step 4: Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            return JsonResponse({
+                "message": "LinkedIn login successful",
+                "access_token": str(refresh.access_token),
+                "refresh_token": str(refresh),
+                "user": {
+                    "email": email,
+                    "name": name,
+                    "picture": picture,
+                    "type": "linkedin"  
 
-        if not email:
-            return JsonResponse({"error": "Email not found"}, status=400)
+                }
+            })
+            
+        except requests.exceptions.RequestException as e:
+            return JsonResponse({"error": f"LinkedIn API error: {str(e)}"}, status=503)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
-        user, _ = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": first_name+last_name, 'password':access_token,'profile_picture':profile_data.get("profilePicture", {}).get("displayImage", ""), 'type':None})
-        refresh = RefreshToken.for_user(user)
-        return JsonResponse({
-            "message": "Login successful",
-            "access_token": str(refresh.access_token),
-            "refresh_token": str(refresh),
-            "user": {"email": email, "name": f"{first_name} {last_name}"}
-        })
 
 class GoogleAuthenticate(APIView):
     @swagger_auto_schema(
@@ -97,9 +137,9 @@ class GoogleAuthenticate(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'id_token': openapi.Schema(type=openapi.TYPE_STRING, description='Google ID token'),
+                'code': openapi.Schema(type=openapi.TYPE_STRING, description='Google Authorization code'),
             },
-            required=['id_token']
+            required=['code']
         ),
         responses={
             200: openapi.Response(
@@ -108,15 +148,15 @@ class GoogleAuthenticate(APIView):
                     type=openapi.TYPE_OBJECT,
                     properties={
                         'message': openapi.Schema(type=openapi.TYPE_STRING),
-                        'access_token': openapi.Schema(type=openapi.TYPE_STRING),
-                        'refresh_token': openapi.Schema(type=openapi.TYPE_STRING),
+                        'accessToken': openapi.Schema(type=openapi.TYPE_STRING),
+                        'refreshToken': openapi.Schema(type=openapi.TYPE_STRING),
                         'user': openapi.Schema(
                             type=openapi.TYPE_OBJECT,
                             properties={
                                 'email': openapi.Schema(type=openapi.TYPE_STRING),
                                 'name': openapi.Schema(type=openapi.TYPE_STRING),
                                 'picture': openapi.Schema(type=openapi.TYPE_STRING),
-                                'type': openapi.Schema(type=openapi.TYPE_STRING)
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
                             }
                         )
                     }
@@ -126,32 +166,62 @@ class GoogleAuthenticate(APIView):
         }
     )
     def post(self, request):
-        token = request.POST.get("id_token")  
+        code = request.POST.get("code")  
+        if not code:
+           return JsonResponse({"error": "Authorization code required"}, status=400)
         try:
+            token_url = "https://oauth2.googleapis.com/token"
+            data = {
+                'code': code,
+                'client_id': WEB_CLIENT_ID,
+                'client_secret': WEB_CLIENT_SECRET,
+                'redirect_uri': REDIRECT_URI,
+                'grant_type': 'authorization_code'
+            }               
+            response = requests.post(token_url, data=data)
+            token_data = response.json() 
+            
+            if 'id_token' not in token_data:
+                return JsonResponse({"error": "Failed to get ID token"}, status=400)
+            
+            decoded_token = None
             for client_id in [WEB_CLIENT_ID, APP_CLIENT_ID]:
                 try:
-                    decoded_token = id_token.verify_oauth2_token(token, req.Request(), client_id)
-                    break 
-                except Exception:
+                    decoded_token = id_token.verify_oauth2_token(
+                        token_data['id_token'],
+                        req.Request(),
+                        client_id
+                    )
+                    break
+                except ValueError:
                     continue
+            
             if decoded_token is None:
                 return JsonResponse({"error": "Invalid token"}, status=400)
-            email = decoded_token.get("email")
-            name = decoded_token.get("name")
-            picture = decoded_token.get("picture")
+                
+            email = decoded_token.get('email')
+            name = decoded_token.get('name')
+            picture = decoded_token.get('picture')
+            
             if not email:
-                return JsonResponse({"error": "Invalid token"}, status=400)
-            user, created = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": name,'password':token})
+                return JsonResponse({"error": "Email not found"}, status=400)
+                
+            user, _ = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": name, 'password':code,'profile_picture':picture,'type':None})
             refresh = RefreshToken.for_user(user)
+            
             return JsonResponse({
                 "message": "Login successful",
                 "access_token": str(refresh.access_token),
                 "refresh_token": str(refresh),
-                "user": {"email": email, "name": name, "picture": picture,"type":None}
+                "user": {
+                    "email": email, 
+                    "name": name, 
+                    "picture": picture,
+                    "id": user.id,
+                }
             })
-        
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return JsonResponse({"error": str(e)}, status=500)
 
 class addtype(APIView):
   permission_classes=[IsAuthenticated]
