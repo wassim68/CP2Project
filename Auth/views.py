@@ -47,7 +47,9 @@ class LinkedInAuthenticate(APIView):
                             type=openapi.TYPE_OBJECT,
                             properties={
                                 'email': openapi.Schema(type=openapi.TYPE_STRING),
-                                'name': openapi.Schema(type=openapi.TYPE_STRING)
+                                'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'picture': openapi.Schema(type=openapi.TYPE_STRING),
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
                             }
                         )
                     }
@@ -101,9 +103,10 @@ class LinkedInAuthenticate(APIView):
                 email=email,
                 defaults={
                     "email": email,
-                    "name": name[:90] if name else "",  
+                    "name": user.name,  
                     'password': code,  
-                    'profile_picture': picture,
+                    'picture': picture,
+                    'id':user.id,
                 }
             )
             
@@ -153,7 +156,7 @@ class GoogleAuthenticate(APIView):
                                 'email': openapi.Schema(type=openapi.TYPE_STRING),
                                 'name': openapi.Schema(type=openapi.TYPE_STRING),
                                 'picture': openapi.Schema(type=openapi.TYPE_STRING),
-                                'type': openapi.Schema(type=openapi.TYPE_STRING)
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
                             }
                         )
                     }
@@ -214,6 +217,7 @@ class GoogleAuthenticate(APIView):
                     "email": email, 
                     "name": name, 
                     "picture": picture,
+                    "id": user.id,
                 }
             })
         except Exception as e:
