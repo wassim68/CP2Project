@@ -166,7 +166,12 @@ CACHES = {
     }
 }
 WEB_CLIENT_ID = os.getenv('WEB_CLIENT_ID')
+WEB_CLIENT_SECRET = os.getenv('WEB_CLIENT_SECRET')
 APP_CLIENT_ID = os.getenv('APP_CLIENT_ID')
+REDIRECT_URI = os.getenv('REDIRECT_URI')
+LINKEDIN_CLIENT_ID = os.getenv('LINKEDIN_CLIENT_ID')
+LINKEDIN_CLIENT_SECRET = os.getenv('LINKEDIN_CLIENT_SECRET')
+LINKEDIN_REDIRECT_URI = os.getenv('LINKEDIN_REDIRECT_URI')
 ELASTICSEARCH_DSL = {
     'default': {
         'hosts': 'http://elasticsearch:9200',
