@@ -661,6 +661,89 @@ class SearchStudent(APIView):
 
         return paginator.get_paginated_response(ser.data)
     
+class SearchStudent(APIView):
+    permission_classes =[IsAuthenticated]
+
+    def get(self,request):
+        username = request.query_params.get('username')
+        if username is None : 
+            return Response({"details":"username not provided"},status=status.HTTP_400_BAD_REQUEST)
+        
+        q = elastic_Q("multi_match", query=username, fields=["name"], fuzziness="auto")
+
+        query = auth_doc.UserDocument.search().query(q)
+
+        search_results = query.execute()
+
+        # Filter results manually in Python based on 'type'
+        filtered_results = [hit for hit in search_results if hit.type == "Student"]
+
+
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(filtered_results,request)
+        ser = serializer.UserStudentSerializer(paginated_qs,many=True)
+
+        return paginator.get_paginated_response(ser.data)
+    
 
 
         
+class UserSearch(APIView):
+  permission_classes=[IsAuthenticated]
+  
+  def get(self,request):
+    
+    username = request.query_params.get('username')
+
+    if username is None :
+      return Response({"details" : "username is not provided"},status=status.HTTP_400_BAD_REQUEST)
+    
+    queryset = models.User.objects.filter(type = 'Student', name__icontains = username ).order_by('name')
+
+
+    paginator = CustomPagination()
+
+    paginated_qs = paginator.paginate_queryset(queryset,request)
+  
+    ser = UserStudentSerializer(paginated_qs,many = True)
+
+    return paginator.get_paginated_response(ser.data)
+
+class Search_saved(APIView):
+  permission_classes = [ IsAuthenticated,permissions.IsStudent]
+
+  @swagger_auto_schema(
+      operation_description="search in saved opportunities for a user  by title ",
+      manual_parameters=[
+          openapi.Parameter('title', openapi.IN_PATH, description="opportunity's title", type=openapi.TYPE_STRING),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful',
+          400: 'title not provided'
+      }
+  )
+  def get(self, request):
+    title = request.query_params.get('title')
+    
+    if title is None:
+        return Response({"details": "title not provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+    student = request.user.student
+
+    if student is None:
+        return Response({"details": "must be a student"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+    queryset = student.savedposts.all()
+
+    filtered_queryset = queryset.filter(title__icontains=title)
+ 
+    ordered_queryset = filtered_queryset.order_by('-created_at')
+   
+    paginator = CustomPagination()
+    paginated_qs = paginator.paginate_queryset(ordered_queryset, request)
+    
+
+    ser = serializer.opportunity_serializer(paginated_qs, many=True)
+    return paginator.get_paginated_response(ser.data)

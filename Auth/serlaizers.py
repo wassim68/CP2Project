@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from .models import User, company, Skills, Student,MCF
 from . import tasks
+#from post.serializer import opportunity_serializer
+
 class Fcmserlaizer(serializers.ModelSerializer):
   class Meta:
     model=MCF
@@ -94,10 +96,22 @@ class UserCompanySerializer(serializers.ModelSerializer):
             instance.save()
         return instance
   def to_representation(self, instance):
-        representation = super().to_representation(instance)
+    representation = super().to_representation(instance)
+    
+    # Check if 'company' exists in the representation
+    if 'company' in representation:
         company_representation = representation.pop('company')
-        representation.update(company_representation)  # Merge company data into the main dictionary
-        return representation
+        
+        # If company_representation is a dictionary, merge it
+        if isinstance(company_representation, dict):
+            representation.update(company_representation)
+        else:
+            # If it's not a dictionary, just append it or handle it differently
+            representation['company'] = company_representation
+    
+    return representation
+  
+  
 class UserStudentSerializer(serializers.ModelSerializer):
   student = StudentSerializer(required=False)
   password=serializers.CharField(write_only=1)
@@ -105,6 +119,7 @@ class UserStudentSerializer(serializers.ModelSerializer):
   pic=serializers.ImageField(required=False)
   cv_input=serializers.FileField(required=False)
   location=serializers.CharField(required=False)
+  #savedposts = opportunity_serializer(required = False)
   def create(self,validated_data):
         Student_data = None
         if 'student' in validated_data:
@@ -157,4 +172,4 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return instance
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location']
+    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location','savedposts']
