@@ -17,6 +17,6 @@ class Application(models.Model):
     acceptedby = models.ManyToManyField("Auth.User", verbose_name=("accepteduser"))
     atachedfile=models.URLField(max_length=200, null=True, blank=True)
     links = models.JSONField(null=True, blank=True)
-    createdate = models.DateTimeField(auto_now_add=True)
+    createdate = models.DateTimeField(auto_now_add=True,null=True)
     def __str__(self):
         return f"Application by {self.student} - Status: {self.status}"
