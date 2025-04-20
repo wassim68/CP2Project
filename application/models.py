@@ -9,6 +9,7 @@ APPLICATION_STATUS = [
 ]
 # Create your models here.
 class Application(models.Model):
+    title = models.TextField(null=True)
     proposal = models.TextField()
     status = models.CharField(choices=APPLICATION_STATUS, max_length=20,default='submitted')
     approve = models.BooleanField(default=False)

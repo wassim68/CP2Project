@@ -127,11 +127,13 @@ class UserStudentSerializer(serializers.ModelSerializer):
         user.save()
         return user
   def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        if 'student' in representation:
-         company_representation = representation.pop('student')
-        representation.update(company_representation)  
-        return representation
+    representation = super().to_representation(instance)
+    
+    company_representation = representation.pop('company', None)  # default to None
+    if company_representation:
+        representation.update(company_representation)  # Merge only if it exists
+
+    return representation
   def update(self, instance, validated_data):
         Student_data = validated_data.pop('student', None)
         if 'pic' in validated_data:
