@@ -637,29 +637,7 @@ class ReceiverTeamInvites(APIView):
 
 
 
-class SearchStudent(APIView):
-    permission_classes =[IsAuthenticated]
 
-    def get(self,request):
-        username = request.query_params.get('username')
-        if username is None : 
-            return Response({"details":"username not provided"},status=status.HTTP_400_BAD_REQUEST)
-        
-        q = elastic_Q("multi_match", query=username, fields=["name"], fuzziness="auto")
-
-        query = auth_doc.UserDocument.search().query(q)
-
-        search_results = query.execute()
-
-        # Filter results manually in Python based on 'type'
-        filtered_results = [hit for hit in search_results if hit.type == "Student"]
-
-
-        paginator = CustomPagination()
-        paginated_qs = paginator.paginate_queryset(filtered_results,request)
-        ser = serializer.UserStudentSerializer(paginated_qs,many=True)
-
-        return paginator.get_paginated_response(ser.data)
     
 class SearchStudent(APIView):
     permission_classes =[IsAuthenticated]

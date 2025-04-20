@@ -18,7 +18,7 @@ class team_serializer(serializers.ModelSerializer):
 
     class Meta:
         model = Team
-        fields = ['id', 'name', 'student_ids', 'students', 'leader_id', 'leader', 'createdate']
+        fields = ['id', 'name', 'student_ids', 'students', 'leader_id', 'leader', 'createdate','category','description']
 
     def create(self, validated_data):
         student_ids = validated_data.pop('student_ids', [])

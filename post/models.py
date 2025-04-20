@@ -18,7 +18,13 @@ OPPORTUNITY_STATUS = [
     ('open', 'Open'),
     ('closed', 'Closed'),
 ]
-
+TEAM_CATEGORY = [
+    ('project', 'project'),
+    ('study', 'study'),
+    ('research', 'research'),
+    ('hackathon', 'hackathon'),
+    ('others', 'others'),
+]
 work_type=[
     ('Online', 'Online'),
     ('Onsite', 'Onsite'),
@@ -43,6 +49,9 @@ class Opportunity(models.Model):
 
 class Team(models.Model):
     name = models.CharField(max_length=255)
+    description = models.TextField(null=True)
+    #skills = models.ManyToManyField(Skills, verbose_name=("Skills"),related_name='teams')
+    category = models.CharField(choices=TEAM_CATEGORY, max_length=20,default='others')
     students = models.ManyToManyField(User, related_name='teams')
     leader = models.ForeignKey(User, related_name='owned_teams', on_delete=models.CASCADE,null=True)
     createdate = models.DateTimeField(auto_now_add=True)

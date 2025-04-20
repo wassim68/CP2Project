@@ -21,12 +21,10 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as req
 import requests
 from django.http import JsonResponse
-
-
 from ProjectCore.settings import WEB_CLIENT_ID, APP_CLIENT_ID,WEB_CLIENT_SECRET,REDIRECT_URI,LINKEDIN_CLIENT_ID,LINKEDIN_CLIENT_SECRET,LINKEDIN_REDIRECT_URI
+
 from post.pagination import CustomPagination
 from post import serializer as post_serializers
-
 
 class LinkedInAuthenticate(APIView):
     @swagger_auto_schema(
