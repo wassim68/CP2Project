@@ -83,13 +83,33 @@ class opportunity_serializer(serializers.ModelSerializer):
         ]
         
 class TeamInviteSerializer(serializers.ModelSerializer):
+
+    team_id = serializers.PrimaryKeyRelatedField(
+        many=False, queryset=Team.objects.all(),write_only=True
+    )
+
+    inviter_id = serializers.PrimaryKeyRelatedField(
+        many=False, queryset=User.objects.all(),write_only=True
+    )
+
+    receiver_id = serializers.PrimaryKeyRelatedField(
+        many=False, queryset=User.objects.all(),write_only=True
+    )
+
+    team = team_serializer
+    inviter = UserCompanySerializer
+    receiver = UserCompanySerializer 
+
     class Meta :
         model = TeamInvite
         fields= [
             'id',
             'inviter',
+            'inviter_id',
             'receiver',
+            'receiver_id',
             'team',
+            'team_id',
             'status',
             'createdate'
         ]
