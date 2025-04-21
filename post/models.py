@@ -61,8 +61,8 @@ class Team(models.Model):
     
 class TeamInvite(models.Model):
     createdate = models.DateTimeField(auto_now_add=True,null=True)
-    inviter = models.ForeignKey(Student, verbose_name=("inviter"),blank=True, null=True,on_delete=models.SET_NULL,related_name="sent_invites")  
-    receiver = models.ForeignKey(Student, verbose_name=("receiver"),blank=True, null=True,on_delete=models.SET_NULL,related_name="pending_invites")   
+    inviter = models.ForeignKey(User, verbose_name=("inviter"),blank=True, null=True,on_delete=models.SET_NULL,related_name="sent_invites")  
+    receiver = models.ForeignKey(User, verbose_name=("receiver"),blank=True, null=True,on_delete=models.SET_NULL,related_name="pending_invites")   
     status = models.CharField(choices=INVITE_STATUS,max_length=8,default='pending')
     team = models.ForeignKey(Team,verbose_name="Team",null=False,on_delete=models.CASCADE,related_name="invites")
 
