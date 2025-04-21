@@ -15,5 +15,5 @@ urlpatterns = [
     path('google',views.GoogleAuthenticate.as_view()),
     path('linkedin',views.LinkedInAuthenticate.as_view()),
     path('notfi',views.notfication.as_view()),
-    
+    path('test',views.test.as_view())
 ]
