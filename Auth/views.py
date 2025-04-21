@@ -586,6 +586,20 @@ class getuser(APIView):
     except Exception :
       return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
 
+class getuserwithname(APIView):
+  def get(self,request,name):
+    try:
+     user=models.User.objects.get(name=name)
+     if user.student:
+       ser=serlaizers.UserStudentSerializer(user)
+     elif user.company:
+       ser=serlaizers.UserCompanySerializer(user)
+     return Response(ser.data)
+    except models.User.DoesNotExist:
+      return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
+
+    
+
 class savedpost(APIView):
   permission_classes=[IsAuthenticated,permissions.IsStudent]
 
@@ -677,6 +691,22 @@ class test(APIView):
     user=request.user
     token=models.MCF.objects.get(user=user)
     tasks.send_fcm_notification(token,'hi','hi')
+
+class notfication(APIView):
+  permission_classes=[IsAuthenticated]
+  def get(slef,request):
+    user=request.user
+    notf=models.Notfications.objects.filter(user=user)
+    ser=serlaizers.notficationserlaizer(notf,many=True)
+    return Response(ser.data)
+
+class notfi(APIView):
+  permission_classes=[IsAuthenticated]
+  def delete(self,request):
+    notf=models.Notfications.objects.filter(id=id,user=request.user).first()
+    notf.delete()
+    return Response('fuck u')
+
     
 
 
