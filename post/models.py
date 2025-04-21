@@ -54,13 +54,13 @@ class Team(models.Model):
     category = models.CharField(choices=TEAM_CATEGORY, max_length=20,default='others')
     students = models.ManyToManyField(User, related_name='teams')
     leader = models.ForeignKey(User, related_name='owned_teams', on_delete=models.CASCADE,null=True)
-    createdate = models.DateTimeField(auto_now_add=True)
+    createdate = models.DateTimeField(auto_now_add=True,null=True)
 
     def __str__(self):
         return self.name
     
 class TeamInvite(models.Model):
-    createdate = models.DateTimeField(auto_now_add=True)
+    createdate = models.DateTimeField(auto_now_add=True,null=True)
     inviter = models.ForeignKey(Student, verbose_name=("inviter"),blank=True, null=True,on_delete=models.SET_NULL,related_name="sent_invites")  
     receiver = models.ForeignKey(Student, verbose_name=("receiver"),blank=True, null=True,on_delete=models.SET_NULL,related_name="pending_invites")   
     status = models.CharField(choices=INVITE_STATUS,max_length=8,default='pending')

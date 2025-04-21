@@ -406,6 +406,12 @@ class acc(APIView):
        return Response(ser.data)
       return Response(ser.errors)
     elif user.student:
+      education=data.get('education')
+      print(data)
+      if education :
+        if not isinstance(education,list) :
+            return Response(status=status.HTTP_304_NOT_MODIFIED)
+      print(data)
       ser=serlaizers.UserStudentSerializer(user,data=data,partial=True)
       if ser.is_valid():
        ser.save()
