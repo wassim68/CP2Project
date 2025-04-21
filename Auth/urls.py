@@ -8,6 +8,7 @@ urlpatterns = [
     path('user',views.acc.as_view()),
     path('otpemail',views.ForgotPass.as_view()),
     path('user/<int:id>/',views.getuser.as_view()),
+    path('user/<str:name>/',views.getuserwithname.as_view()),
     path('userpassword',views.reset_password.as_view()),
     path('post/<int:id>/',views.savedpost.as_view()),
     path('post',views.post.as_view()),

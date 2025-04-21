@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, company, Skills, Student,MCF
+from .models import User, company, Skills, Student,MCF,Notfications
 from . import tasks
 #from post.serializer import opportunity_serializer
 
@@ -8,7 +8,10 @@ class Fcmserlaizer(serializers.ModelSerializer):
   class Meta:
     model=MCF
     fields=['token']
-
+class notficationserlaizer(serializers.ModelSerializer):
+  class Meta:
+     model=Notfications
+     fields='__all__'
 class CompanySerializer(serializers.ModelSerializer):
   class Meta:
     model = company

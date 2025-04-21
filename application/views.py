@@ -214,9 +214,14 @@ class application_crud(APIView):
         user=request.user
         try:
             app=Application.objects.filter(Q(student=user)|Q(team__students=user))
-            post=Opportunity.objects.filter(applications__in=app)
-            ser=sr.opportunity_serializer(post,many=True)
-            return Response({'post':ser.data})
+            s=[]
+            for each in app :
+             post=Opportunity.objects.get(applications=each)
+             ser=sr.opportunity_serializer(post)
+             ser_data = ser.data.copy()  
+             ser_data.update({'status': each.status,'application_day':each.createdate})
+             s.append(ser_data)
+            return Response({'post':s})
         except Exception as e:
             return Response({'error':str(e)},status=status.HTTP_404_NOT_FOUND)
 
