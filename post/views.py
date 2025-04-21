@@ -532,9 +532,9 @@ class InviterTeamInvites(APIView):
                 return Response({'must be the leader'},status=status.HTTP_403_FORBIDDEN)
 
             ser = serializer.TeamInviteSerializer(data={
-            'team': team.id,  
-            'inviter': user.id,  
-            'receiver': invited.id,  
+            'team_id': team.id,  
+            'inviter_id': user.id,  
+            'receiver_id': invited.id,  
             'status': 'pending'
             })
             if not ser.is_valid():

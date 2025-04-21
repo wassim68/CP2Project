@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Opportunity,Team,TeamInvite
 from Auth.serlaizers import UserStudentSerializer,SkillsSerializer,UserCompanySerializer,StudentSerializer
-from Auth.models import Skills,User
+from Auth.models import Skills,User,Student
 
 class team_serializer(serializers.ModelSerializer):
     # Write-only: accept student and leader IDs
@@ -73,9 +73,7 @@ class opportunity_serializer(serializers.ModelSerializer):
             'skills',
             'endday',
             'skill_input',
-            'worktype',
-
-       
+            'worktype',     
             'company',
             'created_at',
             'duration'
@@ -85,24 +83,22 @@ class opportunity_serializer(serializers.ModelSerializer):
 class TeamInviteSerializer(serializers.ModelSerializer):
 
     team_id = serializers.PrimaryKeyRelatedField(
-        many=False, queryset=Team.objects.all(),write_only=True
+        queryset=Team.objects.all(), write_only=True
     )
-
     inviter_id = serializers.PrimaryKeyRelatedField(
-        many=False, queryset=User.objects.all(),write_only=True
+        queryset=User.objects.all(), write_only=True
     )
-
     receiver_id = serializers.PrimaryKeyRelatedField(
-        many=False, queryset=User.objects.all(),write_only=True
+        queryset=User.objects.all(), write_only=True
     )
 
-    team = team_serializer
-    inviter = UserCompanySerializer
-    receiver = UserCompanySerializer 
+    team = team_serializer(read_only=True)
+    inviter = UserStudentSerializer(read_only=True)
+    receiver = UserStudentSerializer(read_only=True)
 
-    class Meta :
+    class Meta:
         model = TeamInvite
-        fields= [
+        fields = [
             'id',
             'inviter',
             'inviter_id',
@@ -113,4 +109,20 @@ class TeamInviteSerializer(serializers.ModelSerializer):
             'status',
             'createdate'
         ]
-        read_only_fields = ['id','createdate']
+        read_only_fields = ['id', 'createdate', 'team', 'inviter', 'receiver']
+
+    
+    def create(self, validated_data):
+        team = validated_data.pop('team_id')
+        inviter_user = validated_data.pop('inviter_id')
+        receiver_user = validated_data.pop('receiver_id')
+
+        inviter = User.objects.get(id=inviter_user.id)
+        receiver = User.objects.get(id=receiver_user.id)
+
+        return TeamInvite.objects.create(
+            team=team,
+            inviter=inviter,
+            receiver=receiver,
+            **validated_data
+            )
