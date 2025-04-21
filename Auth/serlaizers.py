@@ -132,6 +132,7 @@ class UserStudentSerializer(serializers.ModelSerializer):
   location=serializers.CharField(required=False)
   #savedposts = opportunity_serializer(required = False)
   def create(self,validated_data):
+        
         Student_data = None
         if 'student' in validated_data:
          Student_data = validated_data.pop('student', None)  
@@ -182,4 +183,4 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return instance
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location','savedposts']
+    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location']
