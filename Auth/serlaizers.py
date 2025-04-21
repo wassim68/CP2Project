@@ -22,6 +22,9 @@ class EducationSerializer(serializers.Serializer):
     start = serializers.IntegerField()
     end = serializers.IntegerField()
 class StudentSerializer(serializers.ModelSerializer):
+  experience=serializers.ListField(
+      child=serializers.JSONField()
+  )
   skill_input = serializers.ListField(
       child=serializers.CharField(),
       required=False,
@@ -33,7 +36,7 @@ class StudentSerializer(serializers.ModelSerializer):
   )
   class Meta:
     model = Student
-    fields = ['education','gendre','description','skills','rating','category','skill_input','cv']
+    fields = ['education','gendre','description','skills','rating','category','skill_input','cv','experience','savedposts']
   def to_representation(self, instance):
     representation = super().to_representation(instance)
     skills = representation.get('skills', [])
@@ -44,7 +47,7 @@ class StudentSerializer(serializers.ModelSerializer):
   def create(self, validated_data):
         skill_names = validated_data.pop('skill_input',[])
         student = Student.objects.create(**validated_data)
-        skills = Skills.objects.filter(name__in=skill_names)  
+        skills = Skills.objects.filter(name__in=skill_names)
         student.skills.set(skills)  
         return student
   def update(self, instance, validated_data):

@@ -206,7 +206,7 @@ class GoogleAuthenticate(APIView):
             if not email:
                 return JsonResponse({"error": "Email not found"}, status=400)
                 
-            user, _ = models.User.objects.get_or_create(email=email, defaults={"username": email, "name": name, 'password':code,'profile_picture':picture,'type':None})
+            user, _ = models.User.objects.get_or_create(email=email, defaults={"email": email, "name": name, 'password':code,'profilepic':picture,'type':None})
             refresh = RefreshToken.for_user(user)
             
             return JsonResponse({
@@ -666,7 +666,14 @@ class notfication(APIView):
     user=request.user
     models.Notfications.objects.filter(id=id ,user=user).update(isseen=True)
     return Response({'updated'})
-  
+
+class test(APIView):
+  permission_classes=[IsAuthenticated]
+  def post(self,request):
+    user=request.user
+    token=models.MCF.objects.get(user=user)
+    tasks.send_fcm_notification(token,'hi','hi')
+    
 
 
 
