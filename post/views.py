@@ -17,6 +17,10 @@ from drf_yasg import openapi
 from .pagination import CustomPagination
 from .models import TeamInvite
 from Auth import documents as auth_doc
+from application.models import Application
+from application.serlaizers import application_serializer
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 
 @swagger_auto_schema(
@@ -731,7 +735,7 @@ class get_opportunities(APIView):
     def get(self,request):
         type = request.query_params.get('type')
         
-        qs = Opportunity.objects.filter(Type=type)
+        qs = Opportunity.objects.filter(Type=type).order_by('-created_at')
 
         paginator = CustomPagination()
         paginated_qs = paginator.paginate_queryset(qs,request)
@@ -739,3 +743,76 @@ class get_opportunities(APIView):
         ser = serializer.opportunity_serializer(paginated_qs,many=True)
 
         return paginator.get_paginated_response(ser.data)
+
+class dashboard(APIView):
+    permission_classes = [IsAuthenticated,permissions.IsStudent]
+    def get(self,request):
+        user =request.user
+        applications = Application.objects.filter(student=user.id)
+        total = applications.count()
+
+        
+        first_day_this_month = timezone.now().replace(day=1)
+
+
+        last_day_last_month = first_day_this_month - timedelta(days=1)
+
+
+        first_day_last_month = last_day_last_month.replace(day=1)
+
+        last_month_application = applications.filter(
+            createdate__gte = first_day_last_month,
+            createdate__lte = last_day_last_month
+        )
+
+        last_month_count = last_month_application.count()
+
+
+        accepted = last_month_application.filter(approve=True)
+        accepted_count = accepted.count()
+        refused_count = last_month_count - accepted_count
+        if last_month_count !=0 :
+            accepted_ratio = float(accepted_count) / last_month_count
+            refused_ratio = 1 - accepted_ratio
+        else:
+            accepted_ratio =0
+            refused_ratio = 0
+        
+        latest_app = applications.order_by('-createdate')
+        paginator = CustomPagination()
+        latest_app_paginated = paginator.paginate_queryset(latest_app,request)
+        ser_app = application_serializer(latest_app_paginated,many=True)
+
+        teams = user.teams.order_by('-createdate')
+        teams = paginator.paginate_queryset(teams,request)
+        ser_teams = serializer.team_serializer(teams,many=True)
+
+        array = [0] * 7
+        today = timezone.now()
+        this_month = today.month
+        this_day = today.day
+        for i in range(0,6):
+            loop_day = this_day-i
+            if loop_day<1 :
+                this_month -= 1
+                this_day = 30
+            array[i] = applications.filter(createdate__month=this_month,createdate__day = loop_day).count()
+
+        return Response(
+            {
+                "total_application" : total ,
+                "total_application_last_month" : last_month_count ,
+                "accepted_count" : accepted_count ,
+                "refused_count" : refused_count ,
+                "accepted_ratio" : accepted_ratio ,
+                "refused_ratio" : refused_ratio ,
+                "daily_count" : array ,
+                "teams" : ser_teams.data ,
+                "applications" : ser_app.data ,
+            }
+            ,status=status.HTTP_200_OK)    
+
+
+
+
+
