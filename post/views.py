@@ -212,7 +212,7 @@ class team_crud(APIView):
             paginator = CustomPagination()
             paginated_qs = paginator.paginate_queryset(team, request)
             ser = serializer.team_serializer(paginated_qs, many=True)
-            return Response(ser.data)
+            return paginator.get_paginated_response(ser.data)
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
     @swagger_auto_schema(
