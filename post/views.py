@@ -725,3 +725,17 @@ class Search_saved(APIView):
 
     ser = serializer.opportunity_serializer(paginated_qs, many=True)
     return paginator.get_paginated_response(ser.data)
+
+class get_opportunities(APIView):
+    
+    def get(self,request):
+        type = request.query_params.get('type')
+        
+        qs = Opportunity.objects.filter(Type=type)
+
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(qs,request)
+
+        ser = serializer.opportunity_serializer(paginated_qs,many=True)
+
+        return paginator.get_paginated_response(ser.data)
