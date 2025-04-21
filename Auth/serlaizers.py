@@ -18,21 +18,27 @@ class SkillsSerializer(serializers.ModelSerializer):
   class Meta:
     model = Skills
     fields = ['name']
-
+class EducationSerializer(serializers.Serializer):
+    degree = serializers.CharField()
+    institution = serializers.CharField()
+    start = serializers.IntegerField()
+    end = serializers.IntegerField()
 class StudentSerializer(serializers.ModelSerializer):
   skill_input = serializers.ListField(
       child=serializers.CharField(),
       required=False,
       write_only=True)
   skills = SkillsSerializer(many=True, required=False)
+  education=serializers.ListField(
+      child=EducationSerializer(),
+      required=False
+  )
   class Meta:
     model = Student
     fields = ['education','gendre','description','skills','rating','category','skill_input','cv']
   def to_representation(self, instance):
     representation = super().to_representation(instance)
-    
     skills = representation.get('skills', [])
-    
     if skills and isinstance(skills[0], dict) and 'name' in skills[0]:
         representation['skills'] = [skill['name'] for skill in skills]
 
@@ -45,11 +51,14 @@ class StudentSerializer(serializers.ModelSerializer):
         return student
   def update(self, instance, validated_data):
         skill_names = validated_data.pop('skill_input',[])
+        education=validated_data.pop('education',None)
+        if education :
+                instance.education+=education
+                instance.save()
         instance = super().update(instance, validated_data)
         skills = Skills.objects.filter(name__in=skill_names)
         instance.skills.set(skills)
         return instance
-  
 
 
 class UserCompanySerializer(serializers.ModelSerializer):
@@ -101,6 +110,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
     # Check if 'company' exists in the representation
     if 'company' in representation:
         company_representation = representation.pop('company')
+
         
         # If company_representation is a dictionary, merge it
         if isinstance(company_representation, dict):
@@ -112,6 +122,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
     return representation
   
   
+
 class UserStudentSerializer(serializers.ModelSerializer):
   student = StudentSerializer(required=False)
   password=serializers.CharField(write_only=1)
@@ -150,10 +161,9 @@ class UserStudentSerializer(serializers.ModelSerializer):
 
     return representation
   def update(self, instance, validated_data):
-        Student_data = validated_data.pop('student', None)
+        Student_data = validated_data.pop('student', {})
         if 'pic' in validated_data:
             validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
-        Student_data={}
         if 'cv_input' in validated_data:
             Student_data['cv']= tasks.upload_to_supabase(validated_data.pop('cv_input'),instance.name)
         instance = super().update(instance, validated_data)
