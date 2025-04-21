@@ -42,13 +42,12 @@ class StudentSerializer(serializers.ModelSerializer):
   )
   class Meta:
     model = Student
-    fields = ['education','gendre','description','skills','rating','category','skill_input','cv','experience','savedposts']
+    fields = ['education','gendre','description','skills','rating','category','skill_input','cv','experience']
   def to_representation(self, instance):
     representation = super().to_representation(instance)
     skills = representation.get('skills', [])
     if skills and isinstance(skills[0], dict) and 'name' in skills[0]:
         representation['skills'] = [skill['name'] for skill in skills]
-
     return representation
   def create(self, validated_data):
         skill_names = validated_data.pop('skill_input',[])
@@ -139,15 +138,14 @@ class UserStudentSerializer(serializers.ModelSerializer):
   location=serializers.CharField(required=False)
   #savedposts = opportunity_serializer(required = False)
   def create(self,validated_data):
-        
-        Student_data = None
+        Student_data = {}
         if 'student' in validated_data:
          Student_data = validated_data.pop('student', None)  
         validated_data['password'] = make_password(validated_data['password'])
         if 'pic' in validated_data:
          validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),validated_data['name'])
         user = User.objects.create(**validated_data)
-        if Student_data:
+        if Student_data==None:
             skill_names=Student_data.pop('skill_input',[])
             student = Student.objects.create(**Student_data)
             user.student = student  
@@ -162,11 +160,9 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return user
   def to_representation(self, instance):
     representation = super().to_representation(instance)
-    
-    company_representation = representation.pop('company', None)  # default to None
-    if company_representation:
-        representation.update(company_representation)  # Merge only if it exists
-
+    student = representation.pop('student', None)  # default to None
+    if student:
+        representation.update(student)  # Merge only if it exists
     return representation
   def update(self, instance, validated_data):
         Student_data = validated_data.pop('student', {})
