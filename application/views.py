@@ -216,8 +216,7 @@ class application_crud(APIView):
             app=Application.objects.filter(Q(student=user)|Q(team__students=user))
             post=Opportunity.objects.filter(applications__in=app)
             ser=sr.opportunity_serializer(post,many=True)
-            se=serializer.application_serializer(app,many=True)
-            return Response({'post':ser.data,'application':se.data})
+            return Response({'post':ser.data})
         except Exception as e:
             return Response({'error':str(e)},status=status.HTTP_404_NOT_FOUND)
 
