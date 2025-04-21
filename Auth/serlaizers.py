@@ -33,9 +33,13 @@ class StudentSerializer(serializers.ModelSerializer):
       child=EducationSerializer(),
       required=False
   )
+  experience=serializers.ListField(
+      child=serializers.CharField(),
+      required=False
+  )
   class Meta:
     model = Student
-    fields = ['education','gendre','description','skills','rating','category','skill_input','cv']
+    fields = ['education','gendre','description','skills','rating','category','skill_input','cv','experience']
   def to_representation(self, instance):
     representation = super().to_representation(instance)
     skills = representation.get('skills', [])
