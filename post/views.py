@@ -17,6 +17,7 @@ from drf_yasg import openapi
 from .pagination import CustomPagination
 from .models import TeamInvite
 from Auth import documents as auth_doc
+from . import documents as post_doc
 from application.models import Application
 from application.serlaizers import application_serializer
 from datetime import datetime, timedelta
@@ -646,6 +647,18 @@ class ReceiverTeamInvites(APIView):
 class SearchStudent(APIView):
     permission_classes =[IsAuthenticated]
 
+    @swagger_auto_schema(
+      operation_description="search in users for a student  by name ",
+      manual_parameters=[
+          openapi.Parameter('username', openapi.IN_PATH, description="the student's username", type=openapi.TYPE_STRING),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful',
+          400: 'username not provided'
+      }
+  )
+
     def get(self,request):
         username = request.query_params.get('username')
         if username is None : 
@@ -667,29 +680,6 @@ class SearchStudent(APIView):
 
         return paginator.get_paginated_response(ser.data)
     
-
-
-        
-class UserSearch(APIView):
-  permission_classes=[IsAuthenticated]
-  
-  def get(self,request):
-    
-    username = request.query_params.get('username')
-
-    if username is None :
-      return Response({"details" : "username is not provided"},status=status.HTTP_400_BAD_REQUEST)
-    
-    queryset = models.User.objects.filter(type = 'Student', name__icontains = username ).order_by('name')
-
-
-    paginator = CustomPagination()
-
-    paginated_qs = paginator.paginate_queryset(queryset,request)
-  
-    ser = UserStudentSerializer(paginated_qs,many = True)
-
-    return paginator.get_paginated_response(ser.data)
 
 class Search_saved(APIView):
   permission_classes = [ IsAuthenticated,permissions.IsStudent]
@@ -717,18 +707,29 @@ class Search_saved(APIView):
         return Response({"details": "must be a student"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-    queryset = student.savedposts.all()
+    q = elastic_Q("multi_match", query=title, fields=["title"], fuzziness="auto")
 
-    filtered_queryset = queryset.filter(title__icontains=title)
- 
-    ordered_queryset = filtered_queryset.order_by('-created_at')
+    query = post_doc.OpportunityDocument.search().query(q)
+
+    search_results = query.execute()
+    
+    ids = [hit.meta.id for hit in search_results.hits]
+    saveds = student.savedposts.all()
+    saved_ids = [saved.id for saved in saveds]
+    
+    qs = Opportunity.objects.filter(id__in=ids)
+    qs = qs.filter(id__in= saved_ids )
+    
+    
    
     paginator = CustomPagination()
-    paginated_qs = paginator.paginate_queryset(ordered_queryset, request)
+    paginated_qs = paginator.paginate_queryset(qs, request)
     
 
     ser = serializer.opportunity_serializer(paginated_qs, many=True)
     return paginator.get_paginated_response(ser.data)
+
+
 
 class get_opportunities(APIView):
     

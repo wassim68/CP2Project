@@ -8,9 +8,9 @@ from .models import User
 class UserDocument(Document):
     
     class Index:
-        # Name of the Elasticsearch index
+        
         name = 'user'
-        # Optional settings for the index
+        
         settings = {
             "number_of_shards": 1,
             "number_of_replicas": 0

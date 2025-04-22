@@ -10,7 +10,7 @@ class application_serializer(serializers.ModelSerializer):
     attechment=serializers.FileField(required=False)
     class Meta:
         model = models.Application
-        fields = ['id','team','proposal','status','atachedfile','attechment','links']
+        fields = ['id','title','team','proposal','status','atachedfile','attechment','links']
     def create(self, validated_data):
         if 'attechment' in validated_data:
             validated_data['atachedfile']= tasks.upload_to_supabase(validated_data.pop('attechment'),validated_data['team'].name)
