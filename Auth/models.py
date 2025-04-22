@@ -124,4 +124,3 @@ class Notfications(models.Model):
     isseen=models.BooleanField(default=False)
     type=models.CharField(choices=notfication_type,null=True)
 
-
