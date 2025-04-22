@@ -255,14 +255,14 @@ class team_crud(APIView):
                 emails = data.get('emails')
                 if emails is None:
                     return Response({"details" : "team created , invites sent" , "data" : ser.data}, status=status.HTTP_201_CREATED)
-                students = User.objects.filter(email__in= emails , type = 'Student')
+                students = User.objects.filter(email__in= emails , type = 'Student').all()
 
                 for student in students :
                     if student is not None and student != user :
                         invite_data = {
-                            "team" : team.id,
-                            "inviter" : user.id ,
-                            "receiver" : student.id,
+                            "team_id" : team.id,
+                            "inviter_id" : user.id ,
+                            "receiver_id" : student.id,
                             "status" : "pending" 
 
                         }
@@ -657,7 +657,7 @@ class SearchStudent(APIView):
 
         search_results = query.execute()
 
-        # Filter results manually in Python based on 'type'
+        
         filtered_results = [hit for hit in search_results if hit.type == "Student"]
 
 
