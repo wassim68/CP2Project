@@ -1,11 +1,9 @@
 from django.contrib import admin
 from . import models
-# Register your models here.
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
+
 admin.site.register(models.User)
-admin.site.register(models.company)
-admin.site.register(models.Skills)
-admin.site.register(models.Notfications)
-admin.site.register(models.MCF)
 
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('id', 'education', 'gendre', 'category', 'rating', 'cv', 'description', 'get_skills', 'get_saved_posts')

@@ -10,7 +10,7 @@ urlpatterns = [
     path('team/inviter/',views.InviterTeamInvites.as_view()),
     path('team/receiver/',views.ReceiverTeamInvites.as_view()),
     path('search/student',views.SearchStudent.as_view()),
-    path('user/search',views.UserSearch.as_view()),
+    path('user/search',views.SearchStudent.as_view()),
     path('saved/search',views.Search_saved.as_view()),
     path('opportunity/explorer',views.get_opportunities.as_view()),
     path('student/dashboard',views.dashboard.as_view()),

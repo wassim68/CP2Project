@@ -15,6 +15,7 @@ from drf_yasg.utils import swagger_auto_schema
 from . import documents
 from elasticsearch_dsl.query import Q as Query
 from drf_yasg import openapi
+from post.pagination import CustomPagination
 
 # Create your views here.
 class applications(APIView):
@@ -348,7 +349,56 @@ class search(APIView):
 
 
 class search_applied(APIView):
-    authentication_classes = [IsAuthenticated,permissions.IsStudent]
+    permission_classes = [IsAuthenticated,permissions.IsStudent]
+    @swagger_auto_schema(
+        operation_description="Search for applications. This endpoint allows students to search for there applications based on a query string.",
+        manual_parameters=[
+            openapi.Parameter('title', openapi.IN_QUERY, description="title of the application to search for", type=openapi.TYPE_STRING),
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(
+                description="Search results retrieved successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'results': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+                    }
+                )
+            ),
+            400: 'title is required',
+            401: 'Unauthorized',
+            404: 'Not found'
+        })
+
+    def get(self,request):
+        title = request.query_params.get('title')
+    
+        if title is None:
+            return Response({"details": "title not provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        student = request.user.student
+
+        if student is None:
+             return Response({"details": "must be a student"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+        q = Query("multi_match", query=title, fields=["title"], fuzziness="auto")
+
+        search_qs = documents.ApplicationDocument.search().query(q).execute()
+
+        ids = [hit.meta.id for hit in search_qs.hits]
+
+        md_qs = request.user.applications.filter(id__in = ids)
+
+        paginator = CustomPagination()
+
+        paginated_qs = paginator.paginate_queryset(md_qs,request)
+
+        ser = serializer.application_serializer(paginated_qs,many = True)
+
+        return paginator.get_paginated_response(ser.data)
+
 
     
 
