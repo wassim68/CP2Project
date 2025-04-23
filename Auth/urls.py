@@ -3,7 +3,6 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 
 urlpatterns = [
-
     path('Login',views.Login.as_view()),
     path('Signup',views.Signup.as_view()),
     path('Refresh',TokenRefreshView.as_view()),
@@ -19,5 +18,6 @@ urlpatterns = [
     path('usertype',views.addtype.as_view()),
     path('linkedin',views.LinkedInAuthenticate.as_view()),
     path('notfi',views.notfication.as_view()),
-    path('test',views.test.as_view())
+    path('test',views.test.as_view()),
+    path('notif/<int:id>/',views.notfi.as_view())
 ]

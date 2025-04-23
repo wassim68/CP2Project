@@ -108,9 +108,11 @@ class UserCompanySerializer(serializers.ModelSerializer):
                     data=company_data,
                     partial=self.partial  
                 )
-            company_serializer.is_valid(raise_exception=True)
-            company = company_serializer.save()
-            instance.company = company
+                company_serializer.is_valid(raise_exception=True)
+                companyvar = company_serializer.save()
+            else :
+               companyvar= company.objects.create()
+            instance.company = companyvar
             instance.save()
         return instance
   def to_representation(self, instance):
@@ -182,9 +184,12 @@ class UserStudentSerializer(serializers.ModelSerializer):
                     data=Student_data,
                     partial=self.partial  
                 )
-            Student_serializer.is_valid(raise_exception=True)
-            Student = Student_serializer.save()
-            instance.student = Student
+                Student_serializer.is_valid(raise_exception=True)
+                student = Student_serializer.save()
+            else :
+               print('hoooo')
+               student=Student.objects.create()
+            instance.student = student
             instance.save()
         return instance
   class Meta:
