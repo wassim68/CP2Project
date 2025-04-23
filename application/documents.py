@@ -1,6 +1,7 @@
 from django_elasticsearch_dsl import Document
 from django_elasticsearch_dsl.registries import registry
 from post import models
+from . import models as app_md
 from Auth.models import User
 
 
@@ -20,4 +21,13 @@ class Opportunitydocument(Document):
         name = 'opportunity'
     class Django:
         model = models.Opportunity
+        fields = ['title']
+
+@registry.register_document
+class ApplicationDocument(Document):
+    class Index:
+        name = 'application'
+
+    class Django:
+        model = app_md.Application
         fields = ['title']

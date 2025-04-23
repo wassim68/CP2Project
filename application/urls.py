@@ -9,4 +9,5 @@ urlpatterns = [
     path('<int:id>/reject',views.reject_application.as_view()),
     path('choose/<int:id>/',views.choose_app.as_view()),
     path('search/',views.search.as_view()),
+    path('search/applied',views.search_applied.as_view()),
 ]

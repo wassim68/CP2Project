@@ -46,7 +46,7 @@ class Student(models.Model):
     experience=models.JSONField(default=list)
     rating=models.IntegerField(default=5)
     experience=models.JSONField(default=list)
-    savedposts=models.ManyToManyField('post.Opportunity', verbose_name=("opportunity"))
+    savedposts=models.ManyToManyField('post.Opportunity', verbose_name=("opportunity"),related_name='saved_by')
 
     REQUIRED_FIELDS = ['education']
 
