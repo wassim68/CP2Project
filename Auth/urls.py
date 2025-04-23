@@ -14,6 +14,7 @@ urlpatterns = [
     path('post',views.post.as_view()),
     path('Fcm',views.Fcm.as_view()),
     path('google',views.GoogleAuthenticate.as_view()),
+    path('usertype',views.addtype.as_view()),
     path('linkedin',views.LinkedInAuthenticate.as_view()),
     path('notfi',views.notfication.as_view()),
     path('test',views.test.as_view())
