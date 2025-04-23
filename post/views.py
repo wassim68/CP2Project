@@ -259,7 +259,7 @@ class team_crud(APIView):
                 students = User.objects.filter(email__in= emails , type = 'Student').all()
 
                 for student in students :
-                    if student is not None and student != user :
+                    if student is not None and student != user and not TeamInvite.objects.filter(inviter=user.id,receiver=student.id,team=team.id).exists() :
                         invite_data = {
                             "team_id" : team.id,
                             "inviter_id" : user.id ,
@@ -535,6 +535,10 @@ class InviterTeamInvites(APIView):
 
             if user.id != team.leader.id : 
                 return Response({'must be the leader'},status=status.HTTP_403_FORBIDDEN)
+            
+            if TeamInvite.objects.filter(inviter=user.id,receiver=invited.id,team=team_id).exists() :
+                return Response({'invite already sent'},status=status.HTTP_409_CONFLICT)
+
 
             ser = serializer.TeamInviteSerializer(data={
             'team_id': team.id,  
@@ -747,6 +751,19 @@ class get_opportunities(APIView):
 
 class dashboard(APIView):
     permission_classes = [IsAuthenticated,permissions.IsStudent]
+
+    @swagger_auto_schema(
+      operation_description="get dashboard data for a student ",
+      manual_parameters=[ 
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: '{ "total_application": int, "total_application_last_month": int, "accepted_count": int, "refused_count": int, "accepted_ratio": float, "refused_ratio": float, "daily_count": array_of_int[0-6], "teams": json, "applications": json }'
+
+
+      }
+  )
+
     def get(self,request):
         user =request.user
         applications = Application.objects.filter(student=user.id)
@@ -813,6 +830,31 @@ class dashboard(APIView):
             }
             ,status=status.HTTP_200_OK)    
 
+class team_by_id(APIView):
+    permission_classes = [IsAuthenticated,permissions.IsStudent]
+    @swagger_auto_schema(
+      operation_description="get a team by id ",
+      manual_parameters=[
+          openapi.Parameter('id', openapi.IN_PATH, description="team's id", type=openapi.TYPE_STRING),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful',
+          400: 'id not provided',
+          404: 'team not found'
+      }
+  )
+    def get(self,request,id=None):
+        if id is None :
+            return Response({"details" : "id not provided"},status=status.HTTP_400_BAD_REQUEST)
+        user = request.user
+        teams = user.teams
+        team = teams.filter(id=id).first()
+        if team is None :
+            return Response({"details" : "team not found"},status=status.HTTP_404_NOT_FOUND)
+        ser = serializer.team_serializer(team,many=False)
+        return Response({"details" : "successful","data" : ser.data},status=status.HTTP_200_OK)
+        
 
 
 
