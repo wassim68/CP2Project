@@ -1,14 +1,21 @@
 from django.contrib import admin
-
-# Register your models here.
 from . import models
-# Register your models here.
-admin.site.register(models.Opportunity)
+
+@admin.register(models.Opportunity)
+class OpportunityAdmin(admin.ModelAdmin):
+    list_display = ('title', 'company', 'Type', 'category', 'status', 'endday', 'duration', 'created_at')
+    list_filter = ('worktype', 'Type', 'category', 'status', 'created_at')
+    search_fields = ('title', 'description', 'company__email')
+    filter_horizontal = ('skills', 'applications')
+    #autocomplete_fields = ('company',)
+    ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
+
 admin.site.register(models.Application)
 admin.site.register(models.Team)
 @admin.register(models.TeamInvite)
 class TeamInviteAdmin(admin.ModelAdmin):
-    list_display = ('createdate', 'inviter', 'receiver', 'status')  # Fields to display in the list view
-    list_filter = ('status',)  # Optional: Allows filtering by status
-    search_fields = ('inviter__username', 'receiver__username')  # Optional: Allows searching by username of inviter/receiver
-    ordering = ('-createdate',)  # Optional: Orders by creation date (descending)
+    list_display = ('createdate', 'inviter', 'receiver', 'status') 
+    list_filter = ('status',)  
+    search_fields = ('inviter__username', 'receiver__username') 
+    ordering = ('-createdate',)  
