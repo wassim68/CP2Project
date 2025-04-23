@@ -67,7 +67,6 @@ class LinkedInAuthenticate(APIView):
             return JsonResponse({"error": "Authorization code required"}, status=400)
         
         try:
-            # Step 1: Exchange authorization code for access token
             token_url = "https://www.linkedin.com/oauth/v2/accessToken"
             data = {
                 'grant_type': 'authorization_code',
@@ -80,7 +79,6 @@ class LinkedInAuthenticate(APIView):
             headers = {'Content-Type': 'application/x-www-form-urlencoded'}
             token_response = requests.post(token_url, data=data, headers=headers)
             token_data = token_response.json()
-            
             if 'access_token' not in token_data:
                 return JsonResponse({"error": "Failed to get access token from LinkedIn"}, status=400)
             
@@ -96,7 +94,7 @@ class LinkedInAuthenticate(APIView):
             profile_data = profile_response.json()
             
             email = profile_data.get('email')
-            name = f"{profile_data.get('given_name', '')} {profile_data.get('family_name', '')}".strip()
+            name = "{profile_data.get('given_name', '')} {profile_data.get('family_name', '')}".strip()
             picture = profile_data.get('picture') 
             if not email:
                 return JsonResponse({"error": "Email not provided by LinkedIn"}, status=400)
@@ -105,26 +103,23 @@ class LinkedInAuthenticate(APIView):
                 email=email,
                 defaults={
                     "email": email,
-                    "name": user.name,  
+                    "name": name,  
                     'password': code,  
-                    'picture': picture,
-                    'id':user.id,
+                    'profilepic': picture
                 }
             )
-            
-            # Step 4: Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             return JsonResponse({
                 "message": "LinkedIn login successful",
-                "access_token": str(refresh.access_token),
-                "refresh_token": str(refresh),
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
                 "user": {
                     "email": email,
                     "name": name,
-                    "picture": picture,
-                    "type": "linkedin"  
-
-                }
+                    "profilepic": picture,
+                    "id": user.id,
+                    "type": None,
+                }       
             })
             
         except requests.exceptions.RequestException as e:
@@ -157,7 +152,7 @@ class GoogleAuthenticate(APIView):
                             properties={
                                 'email': openapi.Schema(type=openapi.TYPE_STRING),
                                 'name': openapi.Schema(type=openapi.TYPE_STRING),
-                                'picture': openapi.Schema(type=openapi.TYPE_STRING),
+                                'profilepic': openapi.Schema(type=openapi.TYPE_STRING),
                                 'id': openapi.Schema(type=openapi.TYPE_INTEGER),
                             }
                         )
@@ -213,13 +208,14 @@ class GoogleAuthenticate(APIView):
             
             return JsonResponse({
                 "message": "Login successful",
-                "access_token": str(refresh.access_token),
-                "refresh_token": str(refresh),
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
                 "user": {
                     "email": email, 
                     "name": name, 
-                    "picture": picture,
+                    "profilepic": picture,
                     "id": user.id,
+                    "type": None,
                 }
             })
         except Exception as e:
@@ -241,9 +237,12 @@ class addtype(APIView):
           400: 'Invalid type provided'
       }
   )
+  
   def put(self,request):
     user=request.user
-    type=request.data['type']
+    type=request.data.get('type')
+    if type is None:
+      return Response('add type',status=status.HTTP_400_BAD_REQUEST)
     if type.lower()=='student':
         ser=serlaizers.UserStudentSerializer(user,data={'type':'Student'},partial=True)
         if ser.is_valid():
@@ -596,7 +595,7 @@ class getuserwithname(APIView):
        ser=serlaizers.UserCompanySerializer(user)
      return Response(ser.data)
     except models.User.DoesNotExist:
-      return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)
+      return Response({'user dosent exist'},status=status.HTTP_404_NOT_FOUND)   
 
     
 
