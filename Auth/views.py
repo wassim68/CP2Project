@@ -118,7 +118,7 @@ class LinkedInAuthenticate(APIView):
                     "name": name,
                     "profilepic": picture,
                     "id": user.id,
-                    "type": None,
+                    "type": user.type,
                 }       
             })
             
@@ -215,7 +215,7 @@ class GoogleAuthenticate(APIView):
                     "name": name, 
                     "profilepic": picture,
                     "id": user.id,
-                    "type": None,
+                    "type": user.type,
                 }
             })
         except Exception as e:
@@ -256,8 +256,7 @@ class addtype(APIView):
           return Response(ser.data)
         return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     else:
-      return Response('Entre a valid type',status=status.HTTP_400_BAD_REQUEST)
-
+      return Response('Entre a valid type',status=status.HTTP_400_BAD_REQUEST)   
 class Signup(APIView):
   @swagger_auto_schema(
       operation_description="Register a new user in the system. This endpoint creates a new user account with the specified type (student or company), name, email, and password.",
@@ -383,7 +382,6 @@ class acc(APIView):
         return Response({'user deleted succefuly'})
       return Response({'incorect password'},status=status.HTTP_401_UNAUTHORIZED)
     return Response({'add password'},status=status.HTTP_400_BAD_REQUEST)
-  
   @swagger_auto_schema(
       operation_description="Update a user's profile information. This endpoint allows users to modify their profile details.",
       manual_parameters=[
@@ -410,7 +408,6 @@ class acc(APIView):
       if education :
         if not isinstance(education,list) :
             return Response(status=status.HTTP_304_NOT_MODIFIED)
-      print(data)
       ser=serlaizers.UserStudentSerializer(user,data=data,partial=True)
       if ser.is_valid():
        ser.save()
@@ -647,7 +644,6 @@ class savedpost(APIView):
         return Response({'post removed succefuly'})
     except Exception as e:
       return Response({'eror':str(e)},status=status.HTTP_404_NOT_FOUND)
-
 class post(APIView):
   permission_classes=[IsAuthenticated,permissions.IsStudent]
   @swagger_auto_schema(
@@ -666,31 +662,12 @@ class post(APIView):
     user=request.user
     ser=sr.opportunity_serializer(user.student.savedposts,many=True)
     return Response(ser.data)
-
-class notfication(APIView):
-  permission_classes=[IsAuthenticated]
-  @swagger_auto_schema(
-      operation_description="Mark a notification as seen. This endpoint updates the status of a notification to indicate that the user has viewed it.",
-      manual_parameters=[
-          openapi.Parameter('id', openapi.IN_PATH, description="Notification ID", type=openapi.TYPE_INTEGER),
-          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
-      ],
-      responses={
-          200: 'Notification updated successfully'
-      }
-  )
-  def put(self,request,id):
-    user=request.user
-    models.Notfications.objects.filter(id=id ,user=user).update(isseen=True)
-    return Response({'updated'})
-
 class test(APIView):
   permission_classes=[IsAuthenticated]
   def post(self,request):
     user=request.user
     token=models.MCF.objects.get(user=user)
     tasks.send_fcm_notification(token,'hi','hi')
-
 class notfication(APIView):
   permission_classes=[IsAuthenticated]
   def get(slef,request):
@@ -698,10 +675,13 @@ class notfication(APIView):
     notf=models.Notfications.objects.filter(user=user)
     ser=serlaizers.notficationserlaizer(notf,many=True)
     return Response(ser.data)
-
+  def put(self,request,id):
+    user=request.user
+    models.Notfications.objects.filter(id=id ,user=user).update(isseen=True)
+    return Response({'updated'})
 class notfi(APIView):
   permission_classes=[IsAuthenticated]
-  def delete(self,request):
+  def delete(self,request,id):
     notf=models.Notfications.objects.filter(id=id,user=request.user).first()
     notf.delete()
     return Response('fuck u')
