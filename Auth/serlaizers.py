@@ -134,8 +134,21 @@ class UserCompanySerializer(serializers.ModelSerializer):
     return representation
   
   
-
+studentlist=['education','gendre','description','category','skill_input','experience']
 class UserStudentSerializer(serializers.ModelSerializer):
+  gendre=serializers.CharField(required=False,write_only=True)
+  education=serializers.ListField(child=EducationSerializer(),required=False,write_only=True)
+  description=serializers.CharField(required=False,write_only=True)
+  category=serializers.CharField(required=False,write_only=True)
+  skill_input = serializers.ListField(
+      child=serializers.CharField(),
+      required=False,
+      write_only=True)
+  experience=serializers.ListField(
+      child=serializers.CharField(),
+      required=False,
+      write_only=1
+  )
   student = StudentSerializer(required=False)
   password=serializers.CharField(write_only=1)
   type=serializers.CharField()
@@ -176,8 +189,9 @@ class UserStudentSerializer(serializers.ModelSerializer):
             validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
         if 'cv_input' in validated_data:
             Student_data['cv']= tasks.upload_to_supabase(validated_data.pop('cv_input'),instance.name)
-        if 'gendre' in validated_data:
-           Student_data={'gendre':'M'}
+        for item in studentlist:
+         if item in validated_data:
+           Student_data[item]=validated_data.pop(item,None)
         instance = super().update(instance, validated_data)
         if Student_data is not None:
             Student_instance = instance.student
@@ -197,4 +211,4 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return instance
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location']
+    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location']+studentlist
