@@ -85,7 +85,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     name = models.CharField(max_length=100, unique=True)
     email = models.EmailField(max_length=100, unique=True)
     password = models.CharField(max_length=100)
-    number=models.IntegerField(null=True)
+    number=models.CharField(null=True)
     links = models.JSONField(null=True, blank=True)
     company=models.OneToOneField("company", verbose_name=("company"),null=True,on_delete=models.SET_NULL,related_name="user")
     student=models.OneToOneField("Student", verbose_name=("Students"), null=True,on_delete=models.SET_NULL,related_name="user")

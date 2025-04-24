@@ -138,7 +138,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
 class UserStudentSerializer(serializers.ModelSerializer):
   student = StudentSerializer(required=False)
   password=serializers.CharField(write_only=1)
-  type=serializers.CharField(read_only=True)
+  type=serializers.CharField()
   pic=serializers.ImageField(required=False)
   cv_input=serializers.FileField(required=False)
   location=serializers.CharField(required=False)
