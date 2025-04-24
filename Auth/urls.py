@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
+
 urlpatterns = [
     path('Login',views.Login.as_view()),
     path('Signup',views.Signup.as_view()),
@@ -14,7 +15,10 @@ urlpatterns = [
     path('post',views.post.as_view()),
     path('Fcm',views.Fcm.as_view()),
     path('google',views.GoogleAuthenticate.as_view()),
+    path('usertype',views.addtype.as_view()),
     path('linkedin',views.LinkedInAuthenticate.as_view()),
     path('notfi',views.notfication.as_view()),
-    path('test',views.test.as_view())
+    path('test',views.test.as_view()),
+    path('notif/<int:id>/',views.notfi.as_view()),
+    path('try',views.Try.as_view())
 ]

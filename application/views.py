@@ -25,22 +25,51 @@ class applications(APIView):
         manual_parameters=[
             openapi.Parameter('id', openapi.IN_PATH, description="Opportunity ID", type=openapi.TYPE_INTEGER),
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING),
-            openapi.Parameter('team', openapi.IN_HEADER, description="Team name", type=openapi.TYPE_STRING, required=False)
+            openapi.Parameter('team', openapi.IN_HEADER, description="Team name (optional)", type=openapi.TYPE_STRING, required=False)
         ],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
+            required=['message'],
             properties={
-                'message': openapi.Schema(type=openapi.TYPE_STRING, description='Application message'),
+                'message': openapi.Schema(
+                    type=openapi.TYPE_STRING, 
+                    description='Application message explaining why you are interested in this opportunity',
+                    example="I am interested in this opportunity because..."
+                ),
+            },
+            example={
+                "message": "I am interested in this opportunity because of my experience in..."
             }
         ),
         responses={
-            200: openapi.Response(description="Application created successfully"),
-            400: 'Invalid data provided or already applied',
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Opportunity or team not found',
-            226: 'Opportunity is closed'
-        }
+            200: openapi.Response(
+                description="Application created successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                        'status': openapi.Schema(type=openapi.TYPE_STRING),
+                        'approve': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                        'created_at': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            400: openapi.Response(
+                description="Bad Request",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'error': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            401: openapi.Response(description="Unauthorized"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Opportunity or team not found"),
+            226: openapi.Response(description="Opportunity is closed")
+        },
+        tags=['Applications']
     )
     def post(self,request,id):
         user=request.user 
@@ -118,11 +147,20 @@ class accept_application(APIView):
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
         ],
         responses={
-            200: openapi.Response(description="Application accepted successfully"),
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Application not found'
-        }
+            200: openapi.Response(
+                description="Application accepted successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            401: openapi.Response(description="Unauthorized"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Application not found")
+        },
+        tags=['Applications']
     )
     def post(self,request,id):
         user=request.user
@@ -147,11 +185,20 @@ class reject_application(APIView):
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
         ],
         responses={
-            200: openapi.Response(description="Application rejected successfully"),
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Application not found'
-        }
+            200: openapi.Response(
+                description="Application rejected successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            401: openapi.Response(description="Unauthorized"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Application not found")
+        },
+        tags=['Applications']
     )
     def post(self,request,id):
         user=request.user
@@ -173,11 +220,20 @@ class deleteapplication(APIView):
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
         ],
         responses={
-            200: openapi.Response(description="Application deleted successfully"),
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Application not found'
-        }
+            200: openapi.Response(
+                description="Application deleted successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            401: openapi.Response(description="Unauthorized"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Application not found")
+        },
+        tags=['Applications']
     )
     def delete(self,request,id):
         user=request.user
@@ -201,15 +257,39 @@ class application_crud(APIView):
                 schema=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'post': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
-                        'application': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+                        'application': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'status': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'approve': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                                    'created_at': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'post': openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                            'title': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'Type': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'category': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'worktype': openapi.Schema(type=openapi.TYPE_STRING)
+                                        }
+                                    )
+                                }
+                            )
+                        )
                     }
                 )
             ),
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Not found'
-        }
+            401: openapi.Response(description="Unauthorized"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Not found")
+        },
+        tags=['Applications']
     )
     def get(self,request):
         user=request.user
@@ -240,13 +320,31 @@ class company_app_management(APIView):
                 description="Applications retrieved successfully",
                 schema=openapi.Schema(
                     type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                    items=openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                            'message': openapi.Schema(type=openapi.TYPE_STRING),
+                            'status': openapi.Schema(type=openapi.TYPE_STRING),
+                            'approve': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                            'created_at': openapi.Schema(type=openapi.TYPE_STRING),
+                            'student': openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'email': openapi.Schema(type=openapi.TYPE_STRING)
+                                }
+                            )
+                        }
+                    )
                 )
             ),
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Not found'
-        }
+            401: openapi.Response(description="Unauthorized"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Not found")
+        },
+        tags=['Applications']
     )
     def get(self,request,id):
         user=request.user
@@ -268,23 +366,33 @@ class choose_app(APIView):
         ],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
+            required=['id'],
             properties={
-                'id': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_INTEGER), description='List of application IDs to accept')
+                'id': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_INTEGER),
+                    description='List of application IDs to accept'
+                )
             },
-            required=['id']
+            example={
+                "id": [1, 2, 3]
+            }
         ),
         responses={
             200: openapi.Response(
                 description="Applications accepted successfully",
                 schema=openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(type=openapi.TYPE_OBJECT)
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
                 )
             ),
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Opportunity not found'
-        }
+            401: openapi.Response(description="Unauthorized"),
+            403: openapi.Response(description="Forbidden"),
+            404: openapi.Response(description="Opportunity not found")
+        },
+        tags=['Applications']
     )
     def post(self,request,id):
         ids=request.data.get('id',[])
@@ -316,15 +424,40 @@ class search(APIView):
                 schema=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'opportunity': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT)),
-                        'company': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+                        'opportunity': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'title': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'Type': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'category': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'worktype': openapi.Schema(type=openapi.TYPE_STRING)
+                                }
+                            )
+                        ),
+                        'company': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'name': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'email': openapi.Schema(type=openapi.TYPE_STRING)
+                                }
+                            )
+                        )
                     }
                 )
             ),
-            400: 'Query is required',
-            401: 'Unauthorized',
-            404: 'Not found'
-        }
+            400: openapi.Response(description="Query is required"),
+            401: openapi.Response(description="Unauthorized"),
+            404: openapi.Response(description="Not found")
+        },
+        tags=['Search']
     )
     def get(self,request):
         user=request.user
@@ -351,9 +484,9 @@ class search(APIView):
 class search_applied(APIView):
     permission_classes = [IsAuthenticated,permissions.IsStudent]
     @swagger_auto_schema(
-        operation_description="Search for applications. This endpoint allows students to search for there applications based on a query string.",
+        operation_description="Search for applications. This endpoint allows students to search for their applications based on a query string.",
         manual_parameters=[
-            openapi.Parameter('title', openapi.IN_QUERY, description="title of the application to search for", type=openapi.TYPE_STRING),
+            openapi.Parameter('title', openapi.IN_QUERY, description="Title of the application to search for", type=openapi.TYPE_STRING),
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
         ],
         responses={
@@ -362,15 +495,40 @@ class search_applied(APIView):
                 schema=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'results': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+                        'results': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'status': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'approve': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                                    'created_at': openapi.Schema(type=openapi.TYPE_STRING),
+                                    'post': openapi.Schema(
+                                        type=openapi.TYPE_OBJECT,
+                                        properties={
+                                            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                            'title': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'Type': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'category': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
+                                            'worktype': openapi.Schema(type=openapi.TYPE_STRING)
+                                        }
+                                    )
+                                }
+                            )
+                        )
                     }
                 )
             ),
-            400: 'title is required',
-            401: 'Unauthorized',
-            404: 'Not found'
-        })
-
+            400: openapi.Response(description="Title is required"),
+            401: openapi.Response(description="Unauthorized"),
+            404: openapi.Response(description="Not found")
+        },
+        tags=['Search']
+    )
     def get(self,request):
         title = request.query_params.get('title')
     

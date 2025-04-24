@@ -1,8 +1,10 @@
 
 services:
   server:
-    build: .
-    command: bash -c "gunicorn ProjectCore.wsgi:application --bind 0.0.0.0:8000"
+
+    build:
+    context: .
+    command: bash -c "yes | python manage.py makemigrations Auth post application && python manage.py migrate --noinput && python manage.py create_superuser_if_not_exists && yes | python manage.py search_index --rebuild &&python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
   asgi:
@@ -70,6 +72,7 @@ services:
       timeout: 5s
     environment:
       - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - "xpack.security.enabled=false"
     ports:
       - "9200:9200"

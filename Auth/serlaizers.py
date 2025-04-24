@@ -108,9 +108,12 @@ class UserCompanySerializer(serializers.ModelSerializer):
                     data=company_data,
                     partial=self.partial  
                 )
-            company_serializer.is_valid(raise_exception=True)
-            company = company_serializer.save()
-            instance.company = company
+                company_serializer.is_valid(raise_exception=True)
+                companyvar = company_serializer.save()
+            else :
+               companyvar= company.objects.create()
+               instance.type='Company'
+            instance.company = companyvar
             instance.save()
         return instance
   def to_representation(self, instance):
@@ -135,7 +138,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
 class UserStudentSerializer(serializers.ModelSerializer):
   student = StudentSerializer(required=False)
   password=serializers.CharField(write_only=1)
-  type=serializers.CharField(read_only=True)
+  type=serializers.CharField()
   pic=serializers.ImageField(required=False)
   cv_input=serializers.FileField(required=False)
   location=serializers.CharField(required=False)
@@ -182,9 +185,12 @@ class UserStudentSerializer(serializers.ModelSerializer):
                     data=Student_data,
                     partial=self.partial  
                 )
-            Student_serializer.is_valid(raise_exception=True)
-            Student = Student_serializer.save()
-            instance.student = Student
+                Student_serializer.is_valid(raise_exception=True)
+                student = Student_serializer.save()
+            else :
+               student=Student.objects.create()
+               instance.type='Student'
+            instance.student = student
             instance.save()
         return instance
   class Meta:

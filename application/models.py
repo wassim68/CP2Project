@@ -19,5 +19,6 @@ class Application(models.Model):
     atachedfile=models.URLField(max_length=200, null=True, blank=True)
     links = models.JSONField(null=True, blank=True)
     createdate = models.DateTimeField(auto_now_add=True,null=True)
+    updatedat=models.DateTimeField(null=True)
     def __str__(self):
         return f"Application by {self.student} - Status: {self.status}"
