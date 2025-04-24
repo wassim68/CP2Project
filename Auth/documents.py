@@ -19,6 +19,7 @@ class UserDocument(Document):
     class Django:
         model = User
         fields = [
+            'id',
             'name',
             'email',
             'type',

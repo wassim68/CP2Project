@@ -53,7 +53,7 @@ class Team(models.Model):
     #skills = models.ManyToManyField(Skills, verbose_name=("Skills"),related_name='teams')
     category = models.CharField(choices=TEAM_CATEGORY, max_length=20,default='others')
     students = models.ManyToManyField(User, related_name='teams')
-    leader = models.ForeignKey(User, related_name='owned_teams', on_delete=models.CASCADE,null=True)
+    leader = models.ForeignKey(User, related_name='owned_teams', on_delete=models.DO_NOTHING,null=True)
     createdate = models.DateTimeField(auto_now_add=True,null=True)
 
     def __str__(self):
