@@ -533,7 +533,6 @@ class InviterTeamInvites(APIView):
         user = request.user 
         if user.has_perm('Auth.student'):
             try:
-                
                 invites = TeamInvite.objects.filter(inviter=user.id)
                 paginator = CustomPagination()
                 paginated_qs = paginator.paginate_queryset(invites, request)
