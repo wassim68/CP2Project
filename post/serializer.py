@@ -77,6 +77,7 @@ class opportunity_serializer(serializers.ModelSerializer):
             'company',
             'created_at',
             'startdate'
+
         ]
         
 class TeamInviteSerializer(serializers.ModelSerializer):

@@ -42,6 +42,7 @@ class Opportunity(models.Model):
     applications = models.ManyToManyField(Application, related_name='opportunities')
     enddate= models.DateField(null=True)
     startdate=models.DateField(null=1)
+
     created_at=models.DateTimeField(auto_now_add=True,null=True)
 
     def __str__(self):
