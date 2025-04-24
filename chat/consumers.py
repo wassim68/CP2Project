@@ -1,15 +1,27 @@
 import json
+import jwt
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from datetime import datetime
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    
     async def connect(self):
-        from chat.models import Chat
-        from django.contrib.auth import get_user_model
+        # Extract token from query parameters
+        token = self.scope.get("query_string", b"").decode().split("token=")[-1]
 
-        self.user = self.scope["user"]
+        # Try to decode the token and get the user from it
+        try:
+            payload = self.decode_token(token)
+            user_id = payload.get("user_id")
+            self.user = await self.get_user(user_id)
+        except (jwt.ExpiredSignatureError, jwt.DecodeError, AttributeError):
+            await self.close()
+            return
 
-        if not self.user.is_authenticated:
+        if not self.user:
             await self.close()
             return
 
@@ -31,7 +43,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
-        from chat.models import Chat, Message
+        from chat.models import Message
 
         data = json.loads(text_data)
         message = data['message']
@@ -77,3 +89,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
             content=message,
             chat=chat
         )
+
+    def decode_token(self, token):
+        """Decode and validate the JWT token."""
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,  # Or the JWT secret key if different
+                algorithms=["HS256"]
+            )
+            # Check for expiration date or other validation
+            if "exp" in payload and payload["exp"] < datetime.utcnow().timestamp():
+                raise jwt.ExpiredSignatureError("Token has expired")
+            return payload
+        except jwt.ExpiredSignatureError:
+            raise jwt.ExpiredSignatureError("Token has expired")
+        except jwt.DecodeError:
+            raise jwt.DecodeError("Token is invalid")
+
+    @database_sync_to_async
+    def get_user(self, user_id):
+        """Get user from the database based on user_id from token."""
+        try:
+            return get_user_model().objects.get(id=user_id)
+        except get_user_model().DoesNotExist:
+            return None

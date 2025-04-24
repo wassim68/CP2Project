@@ -71,12 +71,12 @@ class opportunity_serializer(serializers.ModelSerializer):
             'Type',
             'category',
             'skills',
-            'endday',
+            'enddate',
+            'startdate',
             'skill_input',
             'worktype',     
             'company',
-            'created_at',
-            'duration'
+            'created_at'
 
         ]
         
