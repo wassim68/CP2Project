@@ -41,8 +41,8 @@ class Opportunity(models.Model):
     status = models.CharField(choices=OPPORTUNITY_STATUS, max_length=15,default='open')
     applications = models.ManyToManyField(Application, related_name='opportunities')
     enddate= models.DateField(null=True)
-    startdate= models.DateField(null=True)
-    
+    startdate=models.DateField(null=1)
+
     created_at=models.DateTimeField(auto_now_add=True,null=True)
 
     def __str__(self):

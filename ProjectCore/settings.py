@@ -128,14 +128,19 @@ CHANNEL_LAYERS = {
 PASSWORD = os.getenv('POSTGRES_PASSWORD')
 DB_PASSWORD=os.getenv('DB_PASSWORD')
 DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": 'postgres',
-            "USER": 'postgres.xzbfazkzsezcjgwpsdlm',
-            "PASSWORD": DB_PASSWORD,
-            "HOST": 'aws-0-eu-west-3.pooler.supabase.com',
-            "PORT":  5432,
-        }}
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'neondb',
+        'USER': 'neondb_owner',
+        'PASSWORD': DB_PASSWORD,
+        'HOST': 'ep-summer-band-a9wi13v0-pooler.gwc.azure.neon.tech',
+        'PORT': '5432',
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    }
+}
+
 
 
 # Password validation
