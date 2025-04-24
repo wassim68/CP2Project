@@ -335,7 +335,23 @@ class addtype(APIView):
           return Response(ser.data)
         return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     else:
-      return Response('Entre a valid type',status=status.HTTP_400_BAD_REQUEST)   
+      return Response('Entre a valid type',status=status.HTTP_400_BAD_REQUEST) 
+class Try(APIView):
+  def post(self,request):
+    user, _ = models.User.objects.get_or_create(email='hiss@gmail.com', defaults={"email": 'hiss@gmail.com', "name": 'hssi', 'password':'0000','type':None})
+    refresh = RefreshToken.for_user(user)
+            
+    return JsonResponse({
+                "message": "Login successful",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "email": user.email, 
+                    "name": user.name, 
+                    "id": user.id,
+                    "type": user.type,
+                }
+            }) 
 class Signup(APIView):
     @swagger_auto_schema(
         operation_description="Register a new user in the system. This endpoint creates a new user account with the specified type (student or company), name, email, and password.",

@@ -19,5 +19,6 @@ urlpatterns = [
     path('linkedin',views.LinkedInAuthenticate.as_view()),
     path('notfi',views.notfication.as_view()),
     path('test',views.test.as_view()),
-    path('notif/<int:id>/',views.notfi.as_view())
+    path('notif/<int:id>/',views.notfi.as_view()),
+    path('try',views.Try.as_view())
 ]
