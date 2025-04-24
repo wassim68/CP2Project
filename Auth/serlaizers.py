@@ -112,6 +112,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
                 companyvar = company_serializer.save()
             else :
                companyvar= company.objects.create()
+               instance.type='Company'
             instance.company = companyvar
             instance.save()
         return instance
@@ -187,8 +188,8 @@ class UserStudentSerializer(serializers.ModelSerializer):
                 Student_serializer.is_valid(raise_exception=True)
                 student = Student_serializer.save()
             else :
-               print('hoooo')
                student=Student.objects.create()
+               instance.type='Student'
             instance.student = student
             instance.save()
         return instance
