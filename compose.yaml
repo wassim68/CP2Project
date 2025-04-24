@@ -1,11 +1,17 @@
 
 services:
   server:
+
     build:
-      context: .
+    context: .
     command: bash -c "yes | python manage.py makemigrations Auth post application && python manage.py migrate --noinput && python manage.py create_superuser_if_not_exists && yes | python manage.py search_index --rebuild &&python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
+  asgi:
+    build: .
+    command: bash -c "uvicorn ProjectCore.asgi:application --host 0.0.0.0 --port 8001"
+    ports:
+      - "8001:8001"
     depends_on:
       elasticsearch:
         condition: service_healthy 

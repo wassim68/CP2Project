@@ -427,11 +427,13 @@ class team_managing(APIView):
             if user.id == user_id:
                 return Response({'cant kick your self , use leave instead'}, status=status.HTTP_409_CONFLICT)
 
-            kicked_user = User.objects.filter(id = user_id).first()
+            kicked_user = team.students.all().filter(id = user_id).first()
             if kicked_user is None:
                 return Response({'the user to kick is not a member in this team'}, status=status.HTTP_409_CONFLICT)
             team.students.remove(kicked_user)
-            return Response({'user successfully kicked'}, status=status.HTTP_200_OK)
+
+            ser = serializer.team_serializer(team,many=False)
+            return Response({"team":ser.data}, status=status.HTTP_200_OK)
 
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
@@ -703,7 +705,13 @@ class SearchStudent(APIView):
         if username is None : 
             return Response({"details":"username not provided"},status=status.HTTP_400_BAD_REQUEST)
         
-        q = elastic_Q("multi_match", query=username, fields=["name"], fuzziness="auto")
+        if username=="":
+            return Response({},status=status.HTTP_200_OK)
+        
+        q = elastic_Q(
+                "wildcard",
+                name={"value": f"*{username.lower()}*"}
+                )
 
         query = auth_doc.UserDocument.search().query(q)
 
@@ -716,7 +724,6 @@ class SearchStudent(APIView):
         paginator = CustomPagination()
         paginated_qs = paginator.paginate_queryset(qs,request)
         ser = serializer.UserStudentSerializer(paginated_qs,many=True)
-
         return paginator.get_paginated_response(ser.data)
     
 
