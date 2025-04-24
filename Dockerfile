@@ -19,4 +19,4 @@ EXPOSE 8000
 COPY . /app/
 
 # Define the command to run your app using gunicorn
-CMD ["gunicorn", "ProjectCore.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["uvicorn", "ProjectCore.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

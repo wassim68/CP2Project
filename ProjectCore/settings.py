@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'corsheaders',
     "drf_yasg",
     'django_elasticsearch_dsl',
+    'channels',
+    'chat',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -99,6 +101,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ProjectCore.wsgi.application'
+
+ASGI_APPLICATION = "ProjectCore.asgi.application"
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('redis', 6379)], 
+        },
+    },
+}
 
 
 # Database
@@ -162,6 +175,8 @@ EMAIL_HOST_USER = os.getenv('EMAIL')
 EMAIL_HOST_PASSWORD = os.getenv('EMAILHOSTPASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('EMAIL')
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True 
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
