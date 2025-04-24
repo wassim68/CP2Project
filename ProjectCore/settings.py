@@ -104,16 +104,16 @@ WSGI_APPLICATION = 'ProjectCore.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 PASSWORD = os.getenv('POSTGRES_PASSWORD')
+DB_PASSWORD=os.getenv('DB_PASSWORD')
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mydatabase',  # Match the database name from \l
-        'USER': 'postgres',    # Default user
-        'PASSWORD': PASSWORD,  # Your password
-        'HOST': 'postgresql',   # This matches the service name in docker-compose.yml
-        'PORT': '5432',
-    }
-}
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": 'postgres',
+            "USER": 'postgres.xzbfazkzsezcjgwpsdlm',
+            "PASSWORD": DB_PASSWORD,
+            "HOST": 'aws-0-eu-west-3.pooler.supabase.com',
+            "PORT":  5432,
+        }}
 
 
 # Password validation
