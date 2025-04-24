@@ -77,7 +77,6 @@ class opportunity_serializer(serializers.ModelSerializer):
             'company',
             'created_at',
             'startdate'
-
         ]
         
 class TeamInviteSerializer(serializers.ModelSerializer):
@@ -91,11 +90,9 @@ class TeamInviteSerializer(serializers.ModelSerializer):
     receiver_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), write_only=True
     )
-
     team = team_serializer(read_only=True)
     inviter = UserStudentSerializer(read_only=True)
     receiver = UserStudentSerializer(read_only=True)
-
     class Meta:
         model = TeamInvite
         fields = [
@@ -110,16 +107,12 @@ class TeamInviteSerializer(serializers.ModelSerializer):
             'createdate'
         ]
         read_only_fields = ['id', 'createdate', 'team', 'inviter', 'receiver']
-
-    
     def create(self, validated_data):
         team = validated_data.pop('team_id')
         inviter_user = validated_data.pop('inviter_id')
         receiver_user = validated_data.pop('receiver_id')
-
         inviter = User.objects.get(id=inviter_user.id)
         receiver = User.objects.get(id=receiver_user.id)
-
         return TeamInvite.objects.create(
             team=team,
             inviter=inviter,

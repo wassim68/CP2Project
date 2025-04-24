@@ -1,7 +1,7 @@
 services:
   server:
     build: .
-    command: bash -c "yes | python manage.py makemigrations Auth post application && python manage.py migrate --noinput &&python manage.py collectstatic --noinput&& python manage.py runserver 0.0.0.0:8000"
+    command: bash -c "yes | python manage.py makemigrations Auth post application chat && python manage.py migrate --noinput &&python manage.py collectstatic --noinput&& python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
   asgi:

@@ -130,14 +130,11 @@ DB_PASSWORD=os.getenv('DB_PASSWORD')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'neondb',
-        'USER': 'neondb_owner',
-        'PASSWORD': DB_PASSWORD,
-        'HOST': 'ep-summer-band-a9wi13v0-pooler.gwc.azure.neon.tech',
+        'NAME': 'mydatabase',
+        'USER': 'postgres',
+        'PASSWORD': PASSWORD,
+        'HOST': 'postgresql',
         'PORT': '5432',
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
     }
 }
 
