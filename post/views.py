@@ -277,16 +277,15 @@ class team_crud(APIView):
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
     @swagger_auto_schema(
-        operation_description="Update an existing team. This endpoint allows students to modify details of their teams.",
+        operation_description="Update an existing team. This endpoint allows students to modify details of their teams. only name, description and category is allowed to be edited",
         manual_parameters=[
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
         ],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'name': openapi.Schema(type=openapi.TYPE_STRING),
-                'emails': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
+                'team_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'team': openapi.Schema(type=openapi.TYPE_OBJECT)
             }
         ),
         responses={
@@ -301,10 +300,30 @@ class team_crud(APIView):
     )
     def put(self, request):
         user = request.user
+        data = request.data
         if user.has_perm('Auth.student'):
             try:
-                team = models.Team.objects.get(id=request.data['id'], students=user)
-                ser = serializer.team_serializer(team, data=request.data, partial=True)
+                
+                team_id = data.get('team_id')
+                if team_id is None :
+                    return Response({'team id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+                team = user.teams.filter(id=team_id).first()
+                if team is None:
+                    return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
+                team_data = data.get('team')
+                if team_data is None:
+                    return Response({'empty data , team remains the same'}, status=status.HTTP_200_OK)
+                name = team_data.get('name')
+                description = team_data.get('description')
+                category = team_data.get('category')
+                updated_team= {}
+                if name is not None and name != "" :
+                    updated_team['name'] = name
+                if description is not None and description != "" :
+                    updated_team['description'] = description    
+                if category is not None and category != "" :
+                    updated_team['category'] = category
+                ser = serializer.team_serializer(team, data=updated_team, partial=True)
                 if ser.is_valid():
                     ser.save()
                     return Response(ser.data)
@@ -371,16 +390,15 @@ class team_crud(APIView):
 class team_managing(APIView):
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
-        operation_description="Add a student to a team. This endpoint allows team members to add other students to their teams.",
+        operation_description="kick a user from a team , must be the leader of that team",
         manual_parameters=[
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
         ],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'teamid': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'userid': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'useremail': openapi.Schema(type=openapi.TYPE_STRING),
+                'team_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'user_id': openapi.Schema(type=openapi.TYPE_INTEGER)
             }
         ),
         responses={
@@ -393,33 +411,40 @@ class team_managing(APIView):
     )
     def put(self, request):
         user = request.user
+        data = request.data
         if user.has_perm('Auth.student'):
-            try:
-                team = models.Team.objects.get(id=request.data['teamid'], students=user)
-                if 'userid' in request.data:
-                    student = models.User.objects.get(id=request.data['userid'])
-                    if student.has_perm('Auth.student'):
-                        team.students.add(student)
-                        return Response({'student added'})
-                    return Response({'user is not a student'}, status=status.HTTP_400_BAD_REQUEST)
-                return Response({'userid is required'}, status=status.HTTP_400_BAD_REQUEST)
-            except models.Team.DoesNotExist:
-                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
-            except models.User.DoesNotExist:
-                return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            
+            team_id = data.get('team_id')
+            if team_id is None :
+                return Response({'team_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            team = user.owned_teams.filter(id=team_id).first()
+            if team is None:
+                return Response({'team not found , or must be a leader'}, status=status.HTTP_404_NOT_FOUND)
+            user_id = data.get('user_id')
+            if user_id is None :
+                return Response({'user_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if user.id == user_id:
+                return Response({'cant kick your self , use leave instead'}, status=status.HTTP_409_CONFLICT)
+
+            kicked_user = User.objects.filter(id = user_id).first()
+            if kicked_user is None:
+                return Response({'the user to kick is not a member in this team'}, status=status.HTTP_409_CONFLICT)
+            team.students.remove(kicked_user)
+            return Response({'user successfully kicked'}, status=status.HTTP_200_OK)
+
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
     @swagger_auto_schema(
-        operation_description="Add a student to a team using their email. This endpoint allows team members to add other students to their teams by email address.",
+        operation_description="allows users to leave a team",
         manual_parameters=[
+
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
         ],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'teamid': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'userid': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'useremail': openapi.Schema(type=openapi.TYPE_STRING),
+                'team_id': openapi.Schema(type=openapi.TYPE_INTEGER)
             }
         ),
         responses={
@@ -432,20 +457,32 @@ class team_managing(APIView):
     )
     def post(self, request):
         user = request.user
+        data = request.data
         if user.has_perm('Auth.student'):
-            try:
-                team = models.Team.objects.get(id=request.data['teamid'], students=user)
-                if 'useremail' in request.data:
-                    student = models.User.objects.get(email=request.data['useremail'])
-                    if student.has_perm('Auth.student'):
-                        team.students.add(student)
-                        return Response({'student added'})
-                    return Response({'user is not a student'}, status=status.HTTP_400_BAD_REQUEST)
-                return Response({'useremail is required'}, status=status.HTTP_400_BAD_REQUEST)
-            except models.Team.DoesNotExist:
-                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
-            except models.User.DoesNotExist:
-                return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            
+            team_id = data.get('team_id')
+            if team_id is None :
+                return Response({'team_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            team = user.teams.filter(id=team_id).first()
+            if team is None:
+                return Response({'team not found , or user is not in team'}, status=status.HTTP_404_NOT_FOUND)
+            
+            if not team.students.filter(id=user.id).exists():
+                return Response({'must be in team to leave'}, status=status.HTTP_409_CONFLICT)
+
+            if team.leader.id == user.id:
+                if team.students.all().count()==1:
+                    team.students.clear()
+                    user.owned_teams.remove(team)
+                    team.delete()
+                else:
+                    team.students.remove(user)
+                    team.leader = team.students.all().order_by('date_joined').first()  
+            else:
+                team.students.remove(user)
+            
+            return Response({'user left team successfully'}, status=status.HTTP_200_OK)
+
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
     @swagger_auto_schema(
@@ -456,9 +493,7 @@ class team_managing(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'teamid': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'userid': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'useremail': openapi.Schema(type=openapi.TYPE_STRING),
+                'team_id': openapi.Schema(type=openapi.TYPE_INTEGER)
             }
         ),
         responses={
@@ -469,22 +504,22 @@ class team_managing(APIView):
             404: 'Not found'
         }
     )
+
     def delete(self, request):
         user = request.user
+        data = request.data
         if user.has_perm('Auth.student'):
-            try:
-                team = models.Team.objects.get(id=request.data['teamid'], students=user)
-                if 'userid' in request.data:
-                    student = models.User.objects.get(id=request.data['userid'])
-                    if student.has_perm('Auth.student'):
-                        team.students.remove(student)
-                        return Response({'student removed'})
-                    return Response({'user is not a student'}, status=status.HTTP_400_BAD_REQUEST)
-                return Response({'userid is required'}, status=status.HTTP_400_BAD_REQUEST)
-            except models.Team.DoesNotExist:
-                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
-            except models.User.DoesNotExist:
-                return Response({'user does not exist'}, status=status.HTTP_404_NOT_FOUND)
+            team_id = data.get('team_id')
+            if team_id is None :
+                return Response({'team_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            team = user.owned_teams.filter(id=team_id).first()
+            if team is None:
+                return Response({'team not found , or must be a leader'}, status=status.HTTP_404_NOT_FOUND)
+            team.students.clear()
+            user.owned_teams.remove(team)
+            team.delete()
+            return Response({'team removed successfully'}, status=status.HTTP_200_OK)
+            
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
 
 class InviterTeamInvites(APIView):
@@ -531,7 +566,7 @@ class InviterTeamInvites(APIView):
                 return Response({'Student not found'},status=status.HTTP_404_NOT_FOUND)
 
             if team.students.filter(id = invited.id).exists() :
-                return Response({'student already in team'},status=status.HTTP_400_BAD_REQUEST)
+                return Response({'student already in team'},status=status.HTTP_409_CONFLICT)
 
             if user.id != team.leader.id : 
                 return Response({'must be the leader'},status=status.HTTP_403_FORBIDDEN)
@@ -674,12 +709,12 @@ class SearchStudent(APIView):
 
         search_results = query.execute()
 
-        
-        filtered_results = [hit for hit in search_results if hit.type == "Student"]
+        ids = [hit.meta.id for hit in search_results.hits]
+        qs = User.objects.filter(id__in = ids).filter(type='Student').exclude(id=request.user.id)
 
 
         paginator = CustomPagination()
-        paginated_qs = paginator.paginate_queryset(filtered_results,request)
+        paginated_qs = paginator.paginate_queryset(qs,request)
         ser = serializer.UserStudentSerializer(paginated_qs,many=True)
 
         return paginator.get_paginated_response(ser.data)
