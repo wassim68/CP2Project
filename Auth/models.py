@@ -24,11 +24,6 @@ class company(models.Model):
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES,null=True)
     REQUIRED_FIELDS = ['category']
 
-class Skills(models.Model):
-    name=models.TextField(unique=1)
-    def __str__(self):
-        return self.name
-
 class MCF(models.Model):
     user=models.ForeignKey("Auth.User", verbose_name=(""), on_delete=models.CASCADE,null=1)
     token=models.CharField(max_length=500,unique=True)
@@ -42,12 +37,11 @@ class Student(models.Model):
     education=models.JSONField(default=list)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')
     category=models.CharField( max_length=50,choices=CATEGORY_CHOICES,null=True,blank=True)
-    skills=models.ManyToManyField("Auth.skills", verbose_name=("Skills"))
+    skills=models.JSONField(default=list,null=True)
     experience=models.JSONField(default=list)
     rating=models.IntegerField(default=5)
     experience=models.JSONField(default=list)
     savedposts=models.ManyToManyField('post.Opportunity', verbose_name=("opportunity"),related_name='saved_by')
-
     REQUIRED_FIELDS = ['education']
 
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import User, company, Skills, Student,MCF,Notfications
+from .models import User, company,  Student,MCF,Notfications
 from . import tasks
 #from post.serializer import opportunity_serializer
 
@@ -16,25 +16,19 @@ class CompanySerializer(serializers.ModelSerializer):
   class Meta:
     model = company
     fields = ['category']
-
-class SkillsSerializer(serializers.ModelSerializer):
-  class Meta:
-    model = Skills
-    fields = ['name']
 class EducationSerializer(serializers.Serializer):
     degree = serializers.CharField()
     institution = serializers.CharField()
-    start = serializers.IntegerField()
-    end = serializers.IntegerField()
+    start = serializers.CharField()
+    end = serializers.CharField()
 class StudentSerializer(serializers.ModelSerializer):
   experience=serializers.ListField(
       child=serializers.JSONField()
   )
-  skill_input = serializers.ListField(
-      child=serializers.CharField(),
-      required=False,
-      write_only=True)
-  skills = SkillsSerializer(many=True, required=False)
+  skills =serializers.ListField(
+     child=serializers.JSONField(),
+     required=False,
+  )
   education=serializers.ListField(
       child=EducationSerializer(),
       required=False
@@ -45,28 +39,19 @@ class StudentSerializer(serializers.ModelSerializer):
   )
   class Meta:
     model = Student
-    fields = ['education','gendre','description','skills','rating','category','skill_input','cv','experience']
+    fields = ['education','gendre','description','skills','rating','category','cv','experience']
   def to_representation(self, instance):
     representation = super().to_representation(instance)
-    skills = representation.get('skills', [])
-    if skills and isinstance(skills[0], dict) and 'name' in skills[0]:
-        representation['skills'] = [skill['name'] for skill in skills]
     return representation
   def create(self, validated_data):
-        skill_names = validated_data.pop('skill_input',[])
         student = Student.objects.create(**validated_data)
-        skills = Skills.objects.filter(name__in=skill_names)
-        student.skills.set(skills)  
         return student
   def update(self, instance, validated_data):
-        skill_names = validated_data.pop('skill_input',[])
         education=validated_data.pop('education',None)
         if education :
-                instance.education+=education
+                instance.education=education
                 instance.save()
         instance = super().update(instance, validated_data)
-        skills = Skills.objects.filter(name__in=skill_names)
-        instance.skills.set(skills)
         return instance
 
 
@@ -134,20 +119,21 @@ class UserCompanySerializer(serializers.ModelSerializer):
     return representation
   
   
-studentlist=['education','gendre','description','category','skill_input','experience']
+studentlist=['education','gendre','description','category','skills','experience']
 class UserStudentSerializer(serializers.ModelSerializer):
   gendre=serializers.CharField(required=False,write_only=True)
-  education=serializers.ListField(child=EducationSerializer(),required=False,write_only=True)
+  education=serializers.ListField(child=EducationSerializer(),required=False)
   description=serializers.CharField(required=False,write_only=True)
   category=serializers.CharField(required=False,write_only=True)
-  skill_input = serializers.ListField(
-      child=serializers.CharField(),
-      required=False,
-      write_only=True)
   experience=serializers.ListField(
       child=serializers.CharField(),
       required=False,
       write_only=1
+  )
+  skills =serializers.ListField(
+     child=serializers.JSONField(),
+     required=False,
+     write_only=True
   )
   student = StudentSerializer(required=False)
   password=serializers.CharField(write_only=1)
@@ -164,18 +150,10 @@ class UserStudentSerializer(serializers.ModelSerializer):
         if 'pic' in validated_data:
          validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),validated_data['name'])
         user = User.objects.create(**validated_data)
-        if Student_data==None:
-            skill_names=Student_data.pop('skill_input',[])
+        if not Student_data :
             student = Student.objects.create(**Student_data)
             user.student = student  
-            skills = Skills.objects.filter(name__in=skill_names)  
-            student.skills.set(skills)  
             user.save()
-        ser=StudentSerializer(data={'skill_input':[]})
-        if ser.is_valid():
-            ser.save()
-        user.student=ser.instance
-        user.save()
         return user
   def to_representation(self, instance):
     representation = super().to_representation(instance)
@@ -199,8 +177,7 @@ class UserStudentSerializer(serializers.ModelSerializer):
                 Student_serializer = StudentSerializer(
                     instance=Student_instance,
                     data=Student_data,
-                    partial=self.partial  
-                )
+                    partial=self.partial)
                 Student_serializer.is_valid(raise_exception=True)
                 student = Student_serializer.save()
             else :

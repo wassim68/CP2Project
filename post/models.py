@@ -1,7 +1,6 @@
 from django.db import models
-from Auth.models import Student,Skills,company,User,CATEGORY_CHOICES
+from Auth.models import Student,company,User,CATEGORY_CHOICES
 from application.models import Application
-from Auth.models import Student
 
 TYPES = [
     ('internship', 'Internship'),
@@ -37,12 +36,11 @@ class Opportunity(models.Model):
     description = models.TextField()
     Type = models.CharField(choices=TYPES, max_length=20,)
     category = models.CharField(choices=CATEGORY_CHOICES, max_length=30)
-    skills = models.ManyToManyField(Skills, verbose_name=("Skills"))
+    skills = models.JSONField(default=list)
     status = models.CharField(choices=OPPORTUNITY_STATUS, max_length=15,default='open')
     applications = models.ManyToManyField(Application, related_name='opportunities')
     enddate= models.DateField(null=True)
     startdate=models.DateField(null=1)
-
     created_at=models.DateTimeField(auto_now_add=True,null=True)
 
     def __str__(self):

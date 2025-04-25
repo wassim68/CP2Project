@@ -7,7 +7,6 @@ class OpportunityAdmin(admin.ModelAdmin):
 
     list_filter = ('worktype', 'Type', 'category', 'status', 'created_at')
     search_fields = ('title', 'description', 'company__email')
-    filter_horizontal = ('skills', 'applications')
     #autocomplete_fields = ('company',)
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
