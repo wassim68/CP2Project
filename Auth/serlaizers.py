@@ -21,18 +21,19 @@ class EducationSerializer(serializers.Serializer):
     institution = serializers.CharField()
     start = serializers.CharField()
     end = serializers.CharField()
+    
+class atachementser(serializers.Serializer):
+   size=serializers.CharField()
+   name=serializers.CharField()
+   link=serializers.URLField()
+
 class StudentSerializer(serializers.ModelSerializer):
-  experience=serializers.ListField(
-      child=serializers.JSONField()
-  )
   skills =serializers.ListField(
      child=serializers.JSONField(),
      required=False,
   )
-  education=serializers.ListField(
-      child=EducationSerializer(),
-      required=False
-  )
+  cv=atachementser(required=False)
+  education = EducationSerializer(many=True, required=False)
   experience=serializers.ListField(
       child=serializers.CharField(),
       required=False
@@ -51,8 +52,8 @@ class StudentSerializer(serializers.ModelSerializer):
         if education :
                 instance.education=education
                 instance.save()
-        instance = super().update(instance, validated_data)
-        return instance
+        return super().update(instance, validated_data)
+
 
 
 class UserCompanySerializer(serializers.ModelSerializer):
@@ -122,7 +123,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
 studentlist=['education','gendre','description','category','skills','experience']
 class UserStudentSerializer(serializers.ModelSerializer):
   gendre=serializers.CharField(required=False,write_only=True)
-  education=serializers.ListField(child=EducationSerializer(),required=False)
+  education = EducationSerializer(many=True, required=False)
   description=serializers.CharField(required=False,write_only=True)
   category=serializers.CharField(required=False,write_only=True)
   experience=serializers.ListField(
@@ -166,7 +167,7 @@ class UserStudentSerializer(serializers.ModelSerializer):
         if 'pic' in validated_data:
             validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
         if 'cv_input' in validated_data:
-            Student_data['cv']= tasks.upload_to_supabase(validated_data.pop('cv_input'),instance.name)
+            Student_data['cv']= tasks.upload_to_supabase_pdf(validated_data.pop('cv_input'),instance.name)
         for item in studentlist:
          if item in validated_data:
            Student_data[item]=validated_data.pop(item,None)

@@ -32,7 +32,7 @@ class MCF(models.Model):
     
 
 class Student(models.Model):
-    cv=models.URLField(max_length=1000,null=True)
+    cv=models.JSONField(null=1)
     description = models.TextField(max_length=1000,null=True)
     education=models.JSONField(default=list)
     gendre=models.CharField(choices=Gendre, max_length=50,default='P')

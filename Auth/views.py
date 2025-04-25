@@ -713,12 +713,13 @@ class acc(APIView):
       return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     elif user.student:
       education=data.get('education')
-      education=json.loads(education)
-      data['education']=education
+      dataentry=data.copy()
       if education :
+        education=json.loads(education)
+        dataentry['education']=education
         if not isinstance(education,list) :
             return Response(status=status.HTTP_304_NOT_MODIFIED)
-      ser=serlaizers.UserStudentSerializer(user,data={'education':education},partial=True)
+      ser=serlaizers.UserStudentSerializer(user,data=dataentry,partial=True)
       if ser.is_valid():
        ser.save()
        return Response(ser.data)
