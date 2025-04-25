@@ -1,9 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,PermissionsMixin
 types=[
-    ('Student','Student'),
-    ('Company','Company'),
-    ('Admin','Admin')
+    ('student','Student'),
+    ('company','Company'),
+    ('admin','Admin')
 ]
 CATEGORY_CHOICES = [
         ('EC', 'Economics'),
