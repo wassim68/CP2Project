@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'django_elasticsearch_dsl',
     'channels',
     'chat',
+    'django_extensions',
 ]
 
 STATIC_URL = '/static/'

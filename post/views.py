@@ -558,34 +558,31 @@ class InviterTeamInvites(APIView):
             if team is None :
                 return Response({'team not found'},status=status.HTTP_404_NOT_FOUND)
 
-            invited_email = data.get('invited_email') 
-            if invited_email is None :
-                return Response({'invited_email not provided'},status=status.HTTP_400_BAD_REQUEST)
+            invited_emails = data.get('invited_emails') 
+            if invited_emails is None :
+                return Response({'invited_emails not provided'},status=status.HTTP_400_BAD_REQUEST)
 
-            invited = User.objects.filter(email = invited_email,type='Student').first()
-            if invited is None :
-                return Response({'Student not found'},status=status.HTTP_404_NOT_FOUND)
-
-            if team.students.filter(id = invited.id).exists() :
-                return Response({'student already in team'},status=status.HTTP_409_CONFLICT)
-
+            inviteds = User.objects.filter(email__in = invited_emails,type='student')
+            if not inviteds.exists() :
+                return Response({'no student found '},status=status.HTTP_404_NOT_FOUND)
             if user.id != team.leader.id : 
                 return Response({'must be the leader'},status=status.HTTP_403_FORBIDDEN)
+            results = []
+            for invited in inviteds :
+                if not team.students.filter(id = invited.id).exists() :
+                    if not TeamInvite.objects.filter(inviter=user.id,receiver=invited.id,team=team_id).exists() :
+                        ser = serializer.TeamInviteSerializer(data={
+                        'team_id': team.id,  
+                        'inviter_id': user.id,  
+                        'receiver_id': invited.id,  
+                        'status': 'pending'
+                        })
+                        if  ser.is_valid():
+                            ser.save()
+                            results.append(ser.data)
             
-            if TeamInvite.objects.filter(inviter=user.id,receiver=invited.id,team=team_id).exists() :
-                return Response({'invite already sent'},status=status.HTTP_409_CONFLICT)
-
-
-            ser = serializer.TeamInviteSerializer(data={
-            'team_id': team.id,  
-            'inviter_id': user.id,  
-            'receiver_id': invited.id,  
-            'status': 'pending'
-            })
-            if not ser.is_valid():
-                return Response({"details" : " invalid data" , "erros" : ser.errors},status=status.HTTP_400_BAD_REQUEST)
-            ser.save()
-            return Response({"details" : " invite sent" , "data" : ser.data})
+            
+            return Response({"details" : " invites sent" , "data" : results},status=status.HTTP_201_CREATED)
 
         except AttributeError as e:
             
