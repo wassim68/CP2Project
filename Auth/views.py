@@ -22,10 +22,10 @@ from google.auth.transport import requests as req
 import requests
 from django.http import JsonResponse
 from ProjectCore.settings import WEB_CLIENT_ID, APP_CLIENT_ID,WEB_CLIENT_SECRET,REDIRECT_URI,LINKEDIN_CLIENT_ID,LINKEDIN_CLIENT_SECRET,LINKEDIN_REDIRECT_URI
-
+import json
 from post.pagination import CustomPagination
 from post import serializer as post_serializers
-
+from django.http import HttpResponse
 class LinkedInAuthenticate(APIView):
     @swagger_auto_schema(
         operation_description="Authenticate a user using LinkedIn OAuth. This endpoint accepts a LinkedIn access token and returns user information along with JWT tokens for authentication.",
@@ -710,18 +710,19 @@ class acc(APIView):
       if ser.is_valid():
        ser.save()
        return Response(ser.data)
-      return Response(ser.errors)
+      return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     elif user.student:
       education=data.get('education')
-      print(data)
+      education=json.loads(education)
+      data['education']=education
       if education :
         if not isinstance(education,list) :
             return Response(status=status.HTTP_304_NOT_MODIFIED)
-      ser=serlaizers.UserStudentSerializer(user,data=data,partial=True)
+      ser=serlaizers.UserStudentSerializer(user,data={'education':education},partial=True)
       if ser.is_valid():
        ser.save()
        return Response(ser.data)
-      return Response(ser.errors)
+      return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
 
   @swagger_auto_schema(
       operation_description="Delete a user account. This endpoint requires the user's password for confirmation.",

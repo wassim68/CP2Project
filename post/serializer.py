@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Opportunity,Team,TeamInvite
-from Auth.serlaizers import UserStudentSerializer,SkillsSerializer,UserCompanySerializer,StudentSerializer
-from Auth.models import Skills,User,Student
+from Auth.serlaizers import UserStudentSerializer,UserCompanySerializer,StudentSerializer
+from Auth.models import User,Student
 
 class team_serializer(serializers.ModelSerializer):
     # Write-only: accept student and leader IDs
@@ -47,18 +47,17 @@ class opportunity_serializer(serializers.ModelSerializer):
       required=False,
       write_only=1)
     
-    skills=SkillsSerializer(many=True,read_only=True)
+    skills=serializers.ListField(
+      child=serializers.JSONField(),
+      required=False,
+    )
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['skills'] = [skill['name'] for skill in representation['skills']]
         return representation
     
     def create(self, validated_data):
-        skill_names = validated_data.pop('skill_input',[])
         student = Opportunity.objects.create(**validated_data)
-        skills = Skills.objects.filter(name__in=skill_names)  
-        student.skills.set(skills)  
         return student
     
     class Meta :
