@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from Auth.models import User
-
+from post.pagination import CustomPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from chat.serializer import ChatSerializer,MessageSerializer
@@ -12,6 +12,19 @@ from .models import Chat,Message
 
 class RoomName(APIView):
     permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_description="return chats of a user,messages are NOT returned only last messages is provided , use [get /chat/messages?room_name=] to get all messages, pagination with 'page''limit'",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
     #get chats for a user
     def get(self,request):
         user = request.user
@@ -23,9 +36,27 @@ class RoomName(APIView):
             chats = user.chats_as_company
         else:
             return Response({"details" : "must be a student or company"},status=status.HTTP_403_FORBIDDEN)
-        ser = ChatSerializer(chats,many=True)
-        return Response({"details" : "successful","chats" : ser.data},status=status.HTTP_200_OK)
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(chats.all(),request)
+        ser = ChatSerializer(paginated_qs,many=True)
+        return paginator.get_paginated_response({"details" : "successful","chats":ser.data})
 
+
+    @swagger_auto_schema(
+        operation_description="create and start a chat with a user , only student-company chats are allowed , chat model is returned ",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING),
+            openapi.Parameter('user_id', openapi.IN_QUERY, description="provide the id of the user u want to create a chat with", type=openapi.TYPE_INTEGER)
+        ],
+        
+        responses={
+            201: openapi.Response(description="Operation successful,created"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
     def post(self,request):
         user = request.user 
         user_id = request.query_params.get('user_id')
@@ -58,6 +89,21 @@ class RoomName(APIView):
         
 class Messages(APIView):
     permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_description="get all messages of a chat , the chat must be yours and already created,pagination with 'page''limit'" ,
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING),
+            openapi.Parameter('room_name', openapi.IN_QUERY, description="room_name of the chat u want its messages ", type=openapi.TYPE_STRING)
+        ],
+        
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
     def get(self,request):
         user = request.user
         room_name = request.query_params.get('room_name')      
@@ -69,5 +115,8 @@ class Messages(APIView):
         if chat.student.id != user.id and chat.company.id != user.id:
             return Response({"details" : "you cant access this chat"},status=status.HTTP_403_FORBIDDEN)
         messages = chat.messages.order_by('-sent_time')
-        ser = MessageSerializer(messages,many=True)
-        return Response({"details" : "successful","messages":ser.data},status=status.HTTP_200_OK)
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(messages.all(),request)
+        ser = MessageSerializer(paginated_qs,many=True)
+        return paginator.get_paginated_response({"details" : "successful","messages":ser.data})
+        
