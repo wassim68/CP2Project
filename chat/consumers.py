@@ -5,9 +5,7 @@ from channels.db import database_sync_to_async
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from datetime import datetime
-from channels_redis.core import RedisChannelLayer
-from django.core.cache import cache
-from django_redis import get_redis_connection
+
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -74,16 +72,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return
 
     async def disconnect(self, close_code):
-        chat = await self.get_chat(self.room_name)
-        if chat is not None:
-            last_msg = await database_sync_to_async(lambda: chat.messages.order_by('-sent_time').first())()
-            chat.last_message = last_msg
-            await database_sync_to_async(chat.save)()
+        
+        await self.save_last_message(self.room_name)
 
         await self.channel_layer.group_discard(
-        self.room_group_name,
-        self.channel_name
-    )
+            self.room_group_name,
+            self.channel_name
+            )
+
 
     async def receive(self, text_data):
         
@@ -91,7 +87,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message = data['message']
         await self.save_message(message)
-
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -148,6 +143,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def get_chat(self, room_name):
         from .models import Chat
         return Chat.objects.filter(room_name=room_name).first()
+    
+    @database_sync_to_async
+    def save_last_message(self,room_name):
+        from .models import Chat,Message
+        chat = Chat.objects.filter(room_name=room_name).first()
+        if chat is not None:
+            last_message = Message.objects.filter(chat__id = chat.id).order_by('-sent_time').first()
+            chat.last_message=last_message
+            chat.save()
+            
+        
+
     
     
     
