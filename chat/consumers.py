@@ -86,24 +86,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         data = json.loads(text_data)
         message = data['message']
-        await self.save_message(message)
+        id = await self.save_message(message)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'chat_message',
                 'message': message,
                 'sender_name': self.user.name,
-                'sender_id' : self.user.id,
-                'sent_time' : timezone.now().isoformat()
+                'sender' : self.user.id,
+                'sent_time' : timezone.now().isoformat(),
+                'id' : id
                 
             }
         )
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
+            'id':event['id'],
             'message': event['message'],
             'sender_name': event['sender_name'],
-                'sender_id' : event['sender_id'],
+                'sender' : event['sender'],
                 'sent_time' : event['sent_time']
         }))
 
@@ -113,12 +115,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat = Chat.objects.get(room_name = self.room_name)
         receiver = chat.student if self.user == chat.company else chat.company
 
-        return Message.objects.create(
+        object = Message.objects.create(
             sender=self.user,
             receiver=receiver,
             message=message,
             chat=chat
         )
+        return object.id
 
     def decode_token(self, token):
         try:
