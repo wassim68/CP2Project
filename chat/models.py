@@ -28,7 +28,7 @@ class Message(models.Model):
     sender = models.ForeignKey(User,related_name='sent_messages',on_delete=models.CASCADE,null=False)
     receiver = models.ForeignKey(User,related_name='received_messages',on_delete=models.CASCADE,null=False)
     sent_time = models.DateTimeField(auto_now_add=True)
-    content = models.TextField(max_length=1000,null=False)
+    message = models.TextField(max_length=1000,null=False)
     chat = models.ForeignKey(Chat, related_name='messages', on_delete=models.CASCADE, null=False)
 
     def __str__(self):

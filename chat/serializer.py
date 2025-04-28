@@ -13,7 +13,7 @@ class MessageSerializer(serializers.ModelSerializer):
             'sender',
             'receiver',
             'sent_time',
-            'content'
+            'message'
         ]
 
     
@@ -27,8 +27,6 @@ class ChatSerializer(serializers.ModelSerializer):
         many=False,queryset=User.objects.all(), write_only=True
     )
     last_message = MessageSerializer(many=False, read_only=True, required=False)
-    #last_message_content = MessageSerializer(source='Message', required=False)
-    #last_message_sent_time = MessageSerializer(source='Message', required=False)
     student = UserStudentSerializer(many=False, read_only=True, required=False)
     company = UserCompanySerializer(many=False, read_only=True, required=False)
     room_name = serializers.CharField(read_only=True)
@@ -41,9 +39,7 @@ class ChatSerializer(serializers.ModelSerializer):
             'company',
             'company_id',
             'room_name',
-            'last_message',
-            #'last_message_content',
-            #'last_message_sent_time'
+            'last_message'
         ]
 
    
