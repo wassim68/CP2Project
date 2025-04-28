@@ -562,7 +562,7 @@ class InviterTeamInvites(APIView):
             if invited_emails is None :
                 return Response({'invited_emails not provided'},status=status.HTTP_400_BAD_REQUEST)
 
-            inviteds = User.objects.filter(email__in = invited_emails,type='student')
+            inviteds = User.objects.filter(email__in = invited_emails).filter(type='Student')
             if not inviteds.exists() :
                 return Response({'no student found '},status=status.HTTP_404_NOT_FOUND)
             if user.id != team.leader.id : 
@@ -681,13 +681,14 @@ class ReceiverTeamInvites(APIView):
 
 
     
-class SearchStudent(APIView):
+class SearchUser(APIView):
     permission_classes =[IsAuthenticated]
 
     @swagger_auto_schema(
-      operation_description="search in users for a student  by name ",
+      operation_description="search for a user by name + filter by type ",
       manual_parameters=[
-          openapi.Parameter('username', openapi.IN_PATH, description="the student's username", type=openapi.TYPE_STRING),
+          openapi.Parameter('username', openapi.IN_QUERY, description="the user's name", type=openapi.TYPE_STRING),
+          openapi.Parameter('type', openapi.IN_QUERY, description="the user's type", type=openapi.TYPE_STRING),
           openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
       ],
       responses={
@@ -713,9 +714,13 @@ class SearchStudent(APIView):
 
         search_results = query.execute()
 
+        type = request.query_params.get('type')
+            
         ids = [hit.meta.id for hit in search_results.hits]
-        qs = User.objects.filter(id__in = ids).filter(type='Student').exclude(id=request.user.id)
+        qs = User.objects.filter(id__in = ids).exclude(id=request.user.id)
 
+        if type is not None : 
+            qs = qs.filter(type=type)
 
         paginator = CustomPagination()
         paginated_qs = paginator.paginate_queryset(qs,request)
