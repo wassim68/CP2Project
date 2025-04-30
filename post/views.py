@@ -922,3 +922,30 @@ class opp_by_id(APIView):
             return Response({"details" : "opportunity not found"},status=status.HTTP_404_NOT_FOUND)
         ser = serializer.opportunity_serializer(opp,many=False)
         return Response({"details" : "successful","data" : ser.data},status=status.HTTP_200_OK)
+    
+    
+class opp_by_company(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+      operation_description="get an opportunities by company ",
+      manual_parameters=[
+          openapi.Parameter('id', openapi.IN_PATH, description="company's id", type=openapi.TYPE_STRING),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful',
+          400: 'id not provided',
+          404: 'comany not found'
+      }
+  )
+    def get(self,request,id=None):
+        if id is None :
+            return Response({"details" : "id not provided"},status=status.HTTP_400_BAD_REQUEST)
+        company = User.objects.filter(id=id).first()
+        if company is None or company.type != 'Company':
+            return Response({"details" : "company not found"},status=status.HTTP_404_NOT_FOUND)
+        opps = company.opportunity.all()
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(opps,request)
+        ser = serializer.opportunity_serializer(paginated_qs,many=True)
+        return paginator.get_paginated_response(ser.data)

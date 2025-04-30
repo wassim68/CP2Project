@@ -15,5 +15,6 @@ urlpatterns = [
     path('student/dashboard',views.dashboard.as_view()),
     path('team/<int:id>',views.team_by_id.as_view()),
     path('opportunity/<int:id>',views.opp_by_id.as_view()),
+    path('opportunity/company/<int:id>',views.opp_by_company.as_view()),
 
 ]
