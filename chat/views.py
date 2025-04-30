@@ -38,7 +38,7 @@ class RoomName(APIView):
             return Response({"details" : "must be a student or company"},status=status.HTTP_403_FORBIDDEN)
         paginator = CustomPagination()
         paginated_qs = paginator.paginate_queryset(chats.all(),request)
-        ser = ChatSerializer(paginated_qs,many=True)
+        ser = ChatSerializer(paginated_qs,context = {"user_id" : user.id},many=True)
         return paginator.get_paginated_response({"details" : "successful","chats":ser.data})
 
 
@@ -118,5 +118,41 @@ class Messages(APIView):
         paginator = CustomPagination()
         paginated_qs = paginator.paginate_queryset(messages.all(),request)
         ser = MessageSerializer(paginated_qs,many=True)
-        return paginator.get_paginated_response({"details" : "successful","messages":ser.data})
+        return paginator.get_paginated_response({"details" : "successful","messages":ser.data })
+    
+    @swagger_auto_schema(
+        operation_description="set all messages to seen for a chat" ,
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING),
+            openapi.Parameter('room_name', openapi.IN_QUERY, description="room_name of the chat u want to set it to seen ", type=openapi.TYPE_STRING)
+        ],
+        
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+    def put(self,request):
+        user = request.user
+        room_name = request.query_params.get('room_name')      
+        if room_name is None:
+            return Response({"details" : "room_name not provided"},status=status.HTTP_400_BAD_REQUEST)
+        chat = Chat.objects.filter(room_name=room_name).first()
+        if chat is None:
+            return Response({"details" : "chat not found"},status=status.HTTP_404_NOT_FOUND)
+        if chat.student.id != user.id and chat.company.id != user.id:
+            return Response({"details" : "you can't access this chat"},status=status.HTTP_403_FORBIDDEN)
+        messages = chat.messages.all()
+        received_messages = messages.filter(receiver=user.id,seen = False).all()
+        count = 0
+        if received_messages.exists():
+            for message in received_messages:
+                message.seen = True 
+                message.save()
+                count += 1
+        return Response({"details" : "updated" , "count" : count},status=status.HTTP_200_OK)        
+                
         
