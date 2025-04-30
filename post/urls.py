@@ -14,5 +14,6 @@ urlpatterns = [
     path('opportunity/explorer',views.get_opportunities.as_view()),
     path('student/dashboard',views.dashboard.as_view()),
     path('team/<int:id>',views.team_by_id.as_view()),
+    path('opportunity/<int:id>',views.opp_by_id.as_view()),
 
 ]
