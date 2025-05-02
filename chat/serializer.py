@@ -13,6 +13,7 @@ class MessageSerializer(serializers.ModelSerializer):
             'sender',
             'receiver',
             'sent_time',
+            'seen',
             'message'
         ]
 
@@ -30,6 +31,7 @@ class ChatSerializer(serializers.ModelSerializer):
     student = UserStudentSerializer(many=False, read_only=True, required=False)
     company = UserCompanySerializer(many=False, read_only=True, required=False)
     room_name = serializers.CharField(read_only=True)
+    unseen_count = serializers.SerializerMethodField()
     class Meta:
         model = Chat
         fields = [
@@ -39,10 +41,14 @@ class ChatSerializer(serializers.ModelSerializer):
             'company',
             'company_id',
             'room_name',
-            'last_message'
+            'last_message',
+            'unseen_count'
         ]
 
    
+    def get_unseen_count(self,obj):
+        count = obj.messages.filter(seen=False,receiver=self.context['user_id']).all().count()
+        return count
 
     
 

@@ -29,8 +29,9 @@ class Message(models.Model):
     receiver = models.ForeignKey(User,related_name='received_messages',on_delete=models.CASCADE,null=False)
     sent_time = models.DateTimeField(auto_now_add=True)
     message = models.TextField(max_length=1000,null=False)
+    seen = models.BooleanField(default=False)
     chat = models.ForeignKey(Chat, related_name='messages', on_delete=models.CASCADE, null=False)
 
     def __str__(self):
-        return f"sent by {self.sender.name}, content [{self.content}]"
+        return f"sent by {self.sender.name}, content [{self.message}]"
     

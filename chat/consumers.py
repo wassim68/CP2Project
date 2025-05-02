@@ -85,29 +85,68 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
 
         data = json.loads(text_data)
-        message = data['message']
-        id = await self.save_message(message)
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': message,
-                'sender_name': self.user.name,
-                'sender' : self.user.id,
-                'sent_time' : timezone.now().isoformat(),
-                'id' : id
+        type = data['type']
+        if type == 'chat_message':
+            message = data['message']
+            id = await self.save_message(message)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message': message,
+                    'sender_name': self.user.name,
+                    'sender' : self.user.id,
+                    'sent_time' : timezone.now().isoformat(),
+                    'id' : id
                 
-            }
-        )
+                }
+            )
+        elif type == 'read_message' :
+            id = data['id']
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'read_message',
+                    'reader_name': self.user.name,
+                    'reader_id' : self.user.id,
+                    'read_time' : timezone.now().isoformat(),
+                    'id' : id
+                
+                }
+            )
 
+
+    async def read_message(self, event):
+        id = event['id']
+        if await self.check_receiver(id) :
+            if await self.update_message(id):
+            
+                await self.send(text_data=json.dumps(
+                     {
+                        'type': event['type'],
+                        'reader_name': event['reader_name'],
+                        'reader_id' : event['reader_id'],
+                        'read_time' : event['read_time'],
+                        'id' : id
+                
+                    }
+                    ))
+        
+            
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
-            'id':event['id'],
-            'message': event['message'],
-            'sender_name': event['sender_name'],
-                'sender' : event['sender'],
-                'sent_time' : event['sent_time']
-        }))
+        await self.send(text_data=json.dumps(
+            {
+                'type' : event['type'],
+                'data' : 
+                    {
+                    'id':event['id'],
+                  'message': event['message'],
+                  'sender_name': event['sender_name'],
+                       'sender' : event['sender'],
+                        'sent_time' : event['sent_time']
+                      }
+            }
+            ))
 
     @database_sync_to_async
     def save_message(self, message):
@@ -151,6 +190,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def get_chat(self, room_name):
         from .models import Chat
         return Chat.objects.filter(room_name=room_name).first()
+    @database_sync_to_async
+    def get_message(self, id):
+        from .models import Message
+        return Message.objects.filter(id=id).first()
+    
+    @database_sync_to_async
+    def check_receiver(self, id):
+        from .models import Message
+        message = Message.objects.filter(id=id).first()
+        if not message :
+            return False
+        if message.receiver.id != self.user.id :
+            return False
+        return True
+
+    
+    @database_sync_to_async
+    def update_message(self, id):
+        from .models import Message
+        message =  Message.objects.filter(id=id).first()
+        if message:
+            message.seen = True
+            message.save()
+            return True
+        else:
+            return False
     
     @database_sync_to_async
     def save_last_message(self,room_name):
