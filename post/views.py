@@ -779,7 +779,14 @@ class Search_saved(APIView):
 
 
 class get_opportunities(APIView):
-    
+    @swagger_auto_schema(
+      operation_description="get opportunities for the user to see ,(homepage)",
+      manual_parameters=[
+          openapi.Parameter('type', openapi.IN_QUERY, description="opportunity's type", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful'
+      })
     def get(self,request):
         type = request.query_params.get('type')
         
