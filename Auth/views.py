@@ -26,6 +26,7 @@ import json
 from post.pagination import CustomPagination
 from post import serializer as post_serializers
 from django.http import HttpResponse
+
 class LinkedInAuthenticate(APIView):
     @swagger_auto_schema(
         operation_description="Authenticate a user using LinkedIn OAuth. This endpoint accepts a LinkedIn access token and returns user information along with JWT tokens for authentication.",
@@ -713,12 +714,15 @@ class acc(APIView):
       return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     elif user.student:
       education=data.get('education')
-      education=json.loads(education)
-      data['education']=education
+      dataentry=data.copy()
       if education :
+        education=json.loads(education)
+        dataentry['education']=education
+        print('eductaion4',dataentry)
         if not isinstance(education,list) :
             return Response(status=status.HTTP_304_NOT_MODIFIED)
-      ser=serlaizers.UserStudentSerializer(user,data={'education':education},partial=True)
+      print(dataentry)
+      ser=serlaizers.UserStudentSerializer(user,data=dataentry,partial=True)
       if ser.is_valid():
        ser.save()
        return Response(ser.data)
@@ -916,6 +920,17 @@ class Fcm(APIView):
             ser.instance.user.add(user)
             return Response({'suceffuly'})
         return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
+class logout(APIView):
+      permission_classes=[IsAuthenticated]
+      def delete(self,request):
+        user=request.user
+        token = request.headers.get('token')
+        try:
+            fcm=models.MCF.objects.get(user=user,token=token)
+            fcm.delete()
+            return Response({'logout succefuly'})
+        except models.MCF.DoesNotExist:
+            return Response({'fcm token does not exist'},status=status.HTTP_404_NOT_FOUND)
 
 class reset_password(APIView):
     @swagger_auto_schema(
@@ -1328,11 +1343,7 @@ class notfi(APIView):
         notf=models.Notfications.objects.filter(id=id,user=request.user).first()
         notf.delete()
         return Response('fuck u')
-
-    
-
-
-
-
-
-    
+class dashboard(APIView):
+   permission_classes=[IsAuthenticated,permissions.IsCompany]
+   def get(self,request):
+        pass 

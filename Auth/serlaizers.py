@@ -21,18 +21,20 @@ class EducationSerializer(serializers.Serializer):
     institution = serializers.CharField()
     start = serializers.CharField()
     end = serializers.CharField()
+
+class atachementser(serializers.Serializer):
+   size=serializers.CharField()
+   name=serializers.CharField()
+   link=serializers.URLField()
+   created_at=serializers.DateTimeField()
+
 class StudentSerializer(serializers.ModelSerializer):
-  experience=serializers.ListField(
-      child=serializers.JSONField()
-  )
   skills =serializers.ListField(
      child=serializers.JSONField(),
      required=False,
   )
-  education=serializers.ListField(
-      child=EducationSerializer(),
-      required=False
-  )
+  cv=serializers.JSONField(required=False)
+  education = EducationSerializer(many=True, required=False)
   experience=serializers.ListField(
       child=serializers.CharField(),
       required=False
@@ -48,11 +50,14 @@ class StudentSerializer(serializers.ModelSerializer):
         return student
   def update(self, instance, validated_data):
         education=validated_data.pop('education',None)
+        cv =validated_data.pop('cv',None)
         if education :
-                instance.education=education
-                instance.save()
-        instance = super().update(instance, validated_data)
-        return instance
+            instance.education=education
+        if cv:
+            instance.cv=cv
+        instance.save()
+        return super().update(instance, validated_data)
+
 
 
 class UserCompanySerializer(serializers.ModelSerializer):
@@ -119,10 +124,15 @@ class UserCompanySerializer(serializers.ModelSerializer):
     return representation
   
   
-studentlist=['education','gendre','description','category','skills','experience']
+studentlist=['gendre','description','category','skills','experience']
 class UserStudentSerializer(serializers.ModelSerializer):
   gendre=serializers.CharField(required=False,write_only=True)
-  education=serializers.ListField(child=EducationSerializer(),required=False)
+  education = serializers.ListField(   
+      child=serializers.ListField(
+         child=serializers.JSONField(),
+      ),
+      required=False,
+  )
   description=serializers.CharField(required=False,write_only=True)
   category=serializers.CharField(required=False,write_only=True)
   experience=serializers.ListField(
@@ -163,10 +173,13 @@ class UserStudentSerializer(serializers.ModelSerializer):
     return representation
   def update(self, instance, validated_data):
         Student_data = validated_data.pop('student', {})
+        print('validated_data',validated_data)
         if 'pic' in validated_data:
             validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
         if 'cv_input' in validated_data:
-            Student_data['cv']= tasks.upload_to_supabase(validated_data.pop('cv_input'),instance.name)
+            Student_data['cv']= tasks.upload_to_supabase_pdf(validated_data.pop('cv_input'),instance.name)
+        if 'education' in validated_data:
+            Student_data['education']=validated_data.pop('education',[])[0]
         for item in studentlist:
          if item in validated_data:
            Student_data[item]=validated_data.pop(item,None)
@@ -188,4 +201,4 @@ class UserStudentSerializer(serializers.ModelSerializer):
         return instance
   class Meta:
     model = User
-    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location']+studentlist
+    fields = ['id','name', 'email', 'number', 'student','type','profilepic','pic','cv_input','links','date_joined','password','location','education']+studentlist

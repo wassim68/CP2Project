@@ -20,5 +20,7 @@ urlpatterns = [
     path('notfi',views.notfication.as_view()),
     path('test',views.test.as_view()),
     path('notif/<int:id>/',views.notfi.as_view()),
-    path('try',views.Try.as_view())
+    path('try',views.Try.as_view()),
+    path('logout',views.logout.as_view()),
+    path('dashboard',views.dashboard.as_view())
 ]
