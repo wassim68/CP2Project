@@ -17,3 +17,4 @@ class StudentAdmin(admin.ModelAdmin):
     get_saved_posts.short_description = 'Saved Posts'
 
 admin.site.register(models.Student,StudentAdmin)
+admin.site.register(models.MCF)

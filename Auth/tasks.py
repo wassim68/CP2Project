@@ -15,22 +15,24 @@ def upload_to_supabase(file,name):
         file=file_content,
         file_options={"content-type": file.content_type}
     )
-    return supabase_client.storage.from_("cp2").get_public_url(file_path)
+    return {
+        'size':len(file_content),
+        'name':file.name,
+        'created_at':datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'link':supabase_client.storage.from_("cp2").get_public_url(file_path)}
 def upload_to_supabase_pdf(file,name):
     file_content = file.read()
     file_extension = os.path.splitext(file.name)[1]  
-    if file_extension!='pdf':
-        return {}
     file_path = f"uploads/{file.name}+{name}+{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}+{file_extension}"  
     response = supabase_client.storage.from_("cp2").upload(
         path=file_path,
         file=file_content,
         file_options={"content-type": file.content_type}
     )
-    
     return {
         'size':len(file_content),
         'name':file.name,
+        'created_at':datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'link':supabase_client.storage.from_("cp2").get_public_url(file_path)}
 @shared_task
 def send_fcm_notification(device_token, title, body):
