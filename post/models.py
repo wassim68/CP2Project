@@ -4,7 +4,7 @@ from application.models import Application
 
 TYPES = [
     ('internship', 'Internship'),
-    ('Problem', 'Problem'),
+    ('problem', 'Problem'),
 ]
 
 INVITE_STATUS = [
@@ -25,9 +25,9 @@ TEAM_CATEGORY = [
     ('others', 'others'),
 ]
 work_type=[
-    ('Online', 'Online'),
-    ('Onsite', 'Onsite'),
-    ('Hybrid', 'Hybrid'),
+    ('online', 'Online'),
+    ('onsite', 'Onsite'),
+    ('hybrid', 'Hybrid'),
 ]
 class Opportunity(models.Model):
     worktype=models.CharField(choices=work_type, max_length=20,default='Onsite')

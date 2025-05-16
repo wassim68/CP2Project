@@ -332,61 +332,6 @@ class team_crud(APIView):
                 return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
-    @swagger_auto_schema(
-        operation_description="Delete a team. This endpoint allows students to remove their teams.",
-        manual_parameters=[
-            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
-        ],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'name': openapi.Schema(type=openapi.TYPE_STRING),
-                'emails': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_STRING)),
-            }
-        ),
-        responses={
-            200: openapi.Response(description="Operation successful"),
-            201: openapi.Response(description="Created successfully"),
-            204: openapi.Response(description="Deleted successfully"),
-            400: 'Invalid data provided',
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Not found'
-        }
-    )
-    def delete(self, request):
-        user = request.user
-        if user.has_perm('Auth.student'):
-            try:
-                team = models.Team.objects.get(id=request.data['id'], students=user)
-                team.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            except models.Team.DoesNotExist:
-                return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
-        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
-
-@swagger_auto_schema(
-    operation_description="Add a student to a team. This endpoint allows team members to add other students to their teams.",
-    manual_parameters=[
-        openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
-    ],
-    request_body=openapi.Schema(
-        type=openapi.TYPE_OBJECT,
-        properties={
-            'teamid': openapi.Schema(type=openapi.TYPE_INTEGER),
-            'userid': openapi.Schema(type=openapi.TYPE_INTEGER),
-            'useremail': openapi.Schema(type=openapi.TYPE_STRING),
-        }
-    ),
-    responses={
-        200: openapi.Response(description="Operation successful"),
-        400: 'Invalid data provided',
-        401: 'Unauthorized',
-        403: 'Forbidden',
-        404: 'Not found'
-    }
-)
 class team_managing(APIView):
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
@@ -488,7 +433,7 @@ class team_managing(APIView):
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
     @swagger_auto_schema(
-        operation_description="Remove a student from a team. This endpoint allows team members to remove other students from their teams.",
+        operation_description="delete a team , only owners can delete the team",
         manual_parameters=[
             openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
         ],
@@ -558,34 +503,31 @@ class InviterTeamInvites(APIView):
             if team is None :
                 return Response({'team not found'},status=status.HTTP_404_NOT_FOUND)
 
-            invited_email = data.get('invited_email') 
-            if invited_email is None :
-                return Response({'invited_email not provided'},status=status.HTTP_400_BAD_REQUEST)
+            invited_emails = data.get('invited_emails') 
+            if invited_emails is None :
+                return Response({'invited_emails not provided'},status=status.HTTP_400_BAD_REQUEST)
 
-            invited = User.objects.filter(email = invited_email,type='Student').first()
-            if invited is None :
-                return Response({'Student not found'},status=status.HTTP_404_NOT_FOUND)
-
-            if team.students.filter(id = invited.id).exists() :
-                return Response({'student already in team'},status=status.HTTP_409_CONFLICT)
-
+            inviteds = User.objects.filter(email__in = invited_emails).filter(type='Student')
+            if not inviteds.exists() :
+                return Response({'no student found '},status=status.HTTP_404_NOT_FOUND)
             if user.id != team.leader.id : 
                 return Response({'must be the leader'},status=status.HTTP_403_FORBIDDEN)
+            results = []
+            for invited in inviteds :
+                if not team.students.filter(id = invited.id).exists() :
+                    if not TeamInvite.objects.filter(inviter=user.id,receiver=invited.id,team=team_id).exists() :
+                        ser = serializer.TeamInviteSerializer(data={
+                        'team_id': team.id,  
+                        'inviter_id': user.id,  
+                        'receiver_id': invited.id,  
+                        'status': 'pending'
+                        })
+                        if  ser.is_valid():
+                            ser.save()
+                            results.append(ser.data)
             
-            if TeamInvite.objects.filter(inviter=user.id,receiver=invited.id,team=team_id).exists() :
-                return Response({'invite already sent'},status=status.HTTP_409_CONFLICT)
-
-
-            ser = serializer.TeamInviteSerializer(data={
-            'team_id': team.id,  
-            'inviter_id': user.id,  
-            'receiver_id': invited.id,  
-            'status': 'pending'
-            })
-            if not ser.is_valid():
-                return Response({"details" : " invalid data" , "erros" : ser.errors},status=status.HTTP_400_BAD_REQUEST)
-            ser.save()
-            return Response({"details" : " invite sent" , "data" : ser.data})
+            
+            return Response({"details" : " invites sent" , "data" : results},status=status.HTTP_201_CREATED)
 
         except AttributeError as e:
             
@@ -684,13 +626,14 @@ class ReceiverTeamInvites(APIView):
 
 
     
-class SearchStudent(APIView):
+class SearchUser(APIView):
     permission_classes =[IsAuthenticated]
 
     @swagger_auto_schema(
-      operation_description="search in users for a student  by name ",
+      operation_description="search for a user by name + filter by type ",
       manual_parameters=[
-          openapi.Parameter('username', openapi.IN_PATH, description="the student's username", type=openapi.TYPE_STRING),
+          openapi.Parameter('username', openapi.IN_QUERY, description="the user's name", type=openapi.TYPE_STRING),
+          openapi.Parameter('type', openapi.IN_QUERY, description="the user's type", type=openapi.TYPE_STRING),
           openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
       ],
       responses={
@@ -716,9 +659,13 @@ class SearchStudent(APIView):
 
         search_results = query.execute()
 
+        type = request.query_params.get('type')
+            
         ids = [hit.meta.id for hit in search_results.hits]
-        qs = User.objects.filter(id__in = ids).filter(type='Student').exclude(id=request.user.id)
+        qs = User.objects.filter(id__in = ids).exclude(id=request.user.id)
 
+        if type is not None : 
+            qs = qs.filter(type=type)
 
         paginator = CustomPagination()
         paginated_qs = paginator.paginate_queryset(qs,request)
@@ -777,7 +724,14 @@ class Search_saved(APIView):
 
 
 class get_opportunities(APIView):
-    
+    @swagger_auto_schema(
+      operation_description="get opportunities for the user to see ,(homepage)",
+      manual_parameters=[
+          openapi.Parameter('type', openapi.IN_QUERY, description="opportunity's type", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful'
+      })
     def get(self,request):
         type = request.query_params.get('type')
         
@@ -897,6 +851,53 @@ class team_by_id(APIView):
         return Response({"details" : "successful","data" : ser.data},status=status.HTTP_200_OK)
         
 
-
-
-
+class opp_by_id(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+      operation_description="get an opportunity by id ",
+      manual_parameters=[
+          openapi.Parameter('id', openapi.IN_PATH, description="opportunity's id", type=openapi.TYPE_STRING),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful',
+          400: 'id not provided',
+          404: 'opportunity not found'
+      }
+  )
+    def get(self,request,id=None):
+        if id is None :
+            return Response({"details" : "id not provided"},status=status.HTTP_400_BAD_REQUEST)
+        opps = Opportunity.objects.all()
+        opp = opps.filter(id=id).first()
+        if opp is None :
+            return Response({"details" : "opportunity not found"},status=status.HTTP_404_NOT_FOUND)
+        ser = serializer.opportunity_serializer(opp,many=False)
+        return Response({"details" : "successful","data" : ser.data},status=status.HTTP_200_OK)
+    
+    
+class opp_by_company(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+      operation_description="get an opportunities by company ",
+      manual_parameters=[
+          openapi.Parameter('id', openapi.IN_PATH, description="company's id", type=openapi.TYPE_STRING),
+          openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+      ],
+      responses={
+          200: 'Operation successful',
+          400: 'id not provided',
+          404: 'comany not found'
+      }
+  )
+    def get(self,request,id=None):
+        if id is None :
+            return Response({"details" : "id not provided"},status=status.HTTP_400_BAD_REQUEST)
+        company = User.objects.filter(id=id).first()
+        if company is None or company.type != 'Company':
+            return Response({"details" : "company not found"},status=status.HTTP_404_NOT_FOUND)
+        opps = company.opportunity.all()
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(opps,request)
+        ser = serializer.opportunity_serializer(paginated_qs,many=True)
+        return paginator.get_paginated_response(ser.data)

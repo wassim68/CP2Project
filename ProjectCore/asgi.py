@@ -5,7 +5,8 @@ from channels.auth import AuthMiddlewareStack
 from django.core.asgi import get_asgi_application
 
 import chat.routing  # Replace 'chat' with your app name if different
-from whitenoise import WhiteNoise
+#from whitenoise import ASGIStaticFilesWrapper
+
 
 # Set up Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ProjectCore.settings')
@@ -26,4 +27,4 @@ application = ProtocolTypeRouter({
     ),
 })
 
-application = WhiteNoise(application, root=os.path.join(os.path.dirname(__file__), 'staticfiles'))
+#application = ASGIStaticFilesWrapper(application)
