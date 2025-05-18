@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 urlpatterns = [
-    path('application/<int:id>/',views.applications.as_view()),
+    path('application/<int:id>/q',views.applications.as_view()),
     path('application',views.application_crud.as_view()),
     path('applications/<int:id>/',views.deleteapplication.as_view()),
     path('<int:id>/',views.company_app_management.as_view()),

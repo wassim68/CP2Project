@@ -74,7 +74,7 @@ class applications(APIView):
     def post(self,request,id):
         user=request.user 
         data=request.data
-        team=request.headers.get('team')
+        team = request.query_params.get('team')
         try:
          post=Opportunity.objects.get(id=id)
          if post.status =='open':
@@ -114,7 +114,7 @@ class applications(APIView):
         request_type=post.Type,  
         request_description=post.description,
         request_creator=team.name,
-        deadline_date=post.endday,
+        deadline_date=post.enddate,
         request_id=ser.data['id']  
     ),
     subject="Action Required: Approve Request for Internship/Challenge",
