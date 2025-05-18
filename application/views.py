@@ -74,12 +74,12 @@ class applications(APIView):
     def post(self,request,id):
         user=request.user 
         data=request.data
-        team=request.headers.get('team')
+        team = request.query_params.get('team')
         try:
          post=Opportunity.objects.get(id=id)
          if post.status =='open':
              if team:
-                 team=Team.objects.get(name=team)
+                 team=Team.objects.get(id=team)
                  if post.applications.filter(team__name=team.name).exists():
                      return Response({"You are already entre this "}, status=status.HTTP_400_BAD_REQUEST)
                  student_emails = [
@@ -114,7 +114,7 @@ class applications(APIView):
         request_type=post.Type,  
         request_description=post.description,
         request_creator=team.name,
-        deadline_date=post.endday,
+        deadline_date=post.enddate,
         request_id=ser.data['id']  
     ),
     subject="Action Required: Approve Request for Internship/Challenge",
