@@ -79,7 +79,7 @@ class applications(APIView):
          post=Opportunity.objects.get(id=id)
          if post.status =='open':
              if team:
-                 team=Team.objects.get(name=team)
+                 team=Team.objects.get(id=team)
                  if post.applications.filter(team__name=team.name).exists():
                      return Response({"You are already entre this "}, status=status.HTTP_400_BAD_REQUEST)
                  student_emails = [
