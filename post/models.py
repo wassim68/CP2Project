@@ -39,6 +39,7 @@ class Opportunity(models.Model):
     skills = models.JSONField(default=list)
     status = models.CharField(choices=OPPORTUNITY_STATUS, max_length=15,default='open')
     applications = models.ManyToManyField(Application, related_name='opportunities')
+    location = models.CharField(max_length=255)
     enddate= models.DateField(null=True)
     startdate=models.DateField(null=1)
     created_at=models.DateTimeField(auto_now_add=True,null=True)

@@ -26,7 +26,7 @@ import json
 from post.pagination import CustomPagination
 from post import serializer as post_serializers
 from django.http import HttpResponse
-
+from application import models as app_models
 class LinkedInAuthenticate(APIView):
     @swagger_auto_schema(
         operation_description="Authenticate a user using LinkedIn OAuth. This endpoint accepts a LinkedIn access token and returns user information along with JWT tokens for authentication.",
@@ -1342,8 +1342,4 @@ class notfi(APIView):
     def delete(self,request,id):
         notf=models.Notfications.objects.filter(id=id,user=request.user).first()
         notf.delete()
-        return Response('fuck u')
-class dashboard(APIView):
-   permission_classes=[IsAuthenticated,permissions.IsCompany]
-   def get(self,request):
-        pass 
+        return Response('deleted succefuly')
