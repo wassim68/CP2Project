@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
+from . import company_dashboard
 
 urlpatterns = [
     path('Login',views.Login.as_view()),
@@ -22,5 +23,13 @@ urlpatterns = [
     path('notif/<int:id>/',views.notfi.as_view()),
     path('try',views.Try.as_view()),
     path('logout',views.logout.as_view()),
-    path('dashboard',views.dashboard.as_view())
+    
+    # Company Dashboard URLs
+    path('company/dashboard/opportunities/', company_dashboard.CompanyDashboard.as_view()),
+    path('company/dashboard/recent/', company_dashboard.CompanyDashboard.as_view()),
+    path('company/dashboard/all-applications/', company_dashboard.CompanyDashboard.as_view()),
+    path('company/dashboard/applications/<int:postId>/', company_dashboard.CompanyDashboard.as_view()),
+    path('company/dashboard/chart-data/', company_dashboard.CompanyDashboard.as_view()),
+    path('company/dashboard/status-counts/', company_dashboard.CompanyDashboard.as_view()),
+    path('company/dashboard/status-pie-chart/', company_dashboard.CompanyDashboard.as_view()),
 ]

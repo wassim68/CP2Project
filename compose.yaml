@@ -1,11 +1,29 @@
+version: "3.9"
+
 services:
   server:
     build: .
-    command: bash -c "python manage.py makemigrations Auth post application chat && python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    command: >
+      bash -c "
+        yes | python manage.py makemigrations Auth post application &&
+        python manage.py migrate --noinput &&
+        python manage.py create_superuser_if_not_exists &&
+        yes | python manage.py search_index --rebuild &&
+        python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      postgresql:
+        condition: service_started
     volumes:
-      - .:/app 
+      - .:/app
+
   asgi:
     build: .
     command: bash -c "uvicorn ProjectCore.asgi:application --host 0.0.0.0 --port 8001"
@@ -13,7 +31,7 @@ services:
       - "8001:8001"
     depends_on:
       elasticsearch:
-        condition: service_healthy 
+        condition: service_healthy
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -52,6 +70,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
   celery:
     build:
       context: .
@@ -60,20 +79,22 @@ services:
       - rabbitmq
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
     container_name: elasticsearch
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsSL http://localhost:9200 || exit 1"]
-      interval: 10s
-      retries: 5
-      start_period: 20s
-      timeout: 5s
+    ports:
+      - "9200:9200"
     environment:
       - discovery.type=single-node
       - "xpack.security.enabled=false"
-    ports:
-      - "9200:9200"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 volumes:
   postgres_data:
   rabbitmq_data:
