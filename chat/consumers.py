@@ -119,15 +119,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def read_message(self, event):
         id = event['id']
         if await self.check_receiver(id) :
-            if await self.update_message(id):
             
+            if await self.update_message(id):
+                object = {}
+                object['reader_name'] = event['reader_name']
+                object['reader_id'] = event['reader_id']
+                object['read_time'] = event['read_time']
+                object['id'] = event['id']
                 await self.send(text_data=json.dumps(
                      {
                         'type': event['type'],
-                        'reader_name': event['reader_name'],
-                        'reader_id' : event['reader_id'],
-                        'read_time' : event['read_time'],
-                        'id' : id
+                        'data': object
                 
                     }
                     ))
