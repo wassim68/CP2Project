@@ -17,8 +17,10 @@ from . import documents
 from elasticsearch_dsl.query import Q as Query
 from drf_yasg import openapi
 from post.pagination import CustomPagination
+
 import numpy as np
 from Auth.models import User
+
 # Create your views here.
 class applications(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
@@ -136,6 +138,7 @@ class applications(APIView):
         request_creator=team.name,
         deadline_date=post.enddate,
         request_id=c
+
     ),
     subject="Action Required: Approve Request for Internship/Challenge",
     receipnt=[email],
@@ -163,43 +166,6 @@ class applications(APIView):
         except Opportunity.DoesNotExist:
             return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
 
-class accept_application(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsStudent]
-    @swagger_auto_schema(
-        operation_description="Accept a team application. This endpoint allows team members to approve an application submitted on behalf of their team.",
-        manual_parameters=[
-            openapi.Parameter('id', openapi.IN_PATH, description="Application ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
-        ],
-        responses={
-            200: openapi.Response(
-                description="Application accepted successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'message': openapi.Schema(type=openapi.TYPE_STRING)
-                    }
-                )
-            ),
-            401: openapi.Response(description="Unauthorized"),
-            403: openapi.Response(description="Forbidden"),
-            404: openapi.Response(description="Application not found")
-        },
-        tags=['Applications']
-    )
-    def post(self,request,id):
-        user=request.user
-        try:
-            app=Application.objects.get(id=id)
-            op=app.opportunities.all().first()
-            app.acceptedby.add(user)
-            if app.acceptedby.count()==app.team.students.count():
-                app.approve=True
-                app.status='under_review'
-            app.save()
-            return Response({'accepted'})
-        except Application.DoesNotExist:
-            return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
 
 class accept_application(APIView):
     @swagger_auto_schema(
@@ -226,6 +192,7 @@ class accept_application(APIView):
     )
     def post(self,request,id,):
         try:
+
             c=cache.get(f"reverse:{id}")
             if not cache.get(f"reverse:{id}"):
                 return Response({"this link is expired"},status=status.HTTP_400_BAD_REQUEST)
@@ -233,14 +200,23 @@ class accept_application(APIView):
             op=app.opportunities.all().first()
             email=c.split('_')[0]
             user=User.objects.get(email=email)
+
+            app=Application.objects.get(id=id)
+            if not app:
+                return render(request, 'application_choice.html', {
+                    'error': 'Application not found'
+                })
+
             app.acceptedby.add(user)
             if app.acceptedby.count()==app.team.students.count():
                 app.approve=True
                 app.status='under_review'
             app.save()
-            return Response({'accepted'})
+            return render(request, 'application_accepted.html')
         except Application.DoesNotExist:
-            return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+            return render(request, 'application_choice.html', {
+                'error': 'Application not found'
+            })
 
 class reject_application(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
@@ -270,12 +246,18 @@ class reject_application(APIView):
         user=request.user
         try:
             app=Application.objects.get(id=id)
+            if not app:
+                return render(request, 'application_choice.html', {
+                    'error': 'Application not found'
+                })
             if app.acceptedby.filter(name=user.name).exists():
-              app.acceptedby.remove(user)
+                app.acceptedby.remove(user)
             app.save()
-            return Response({'rejected'})
+            return render(request, 'application_rejected.html')
         except Application.DoesNotExist:
-            return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
+            return render(request, 'application_choice.html', {
+                'error': 'Application not found'
+            })
 
 class deleteapplication(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
