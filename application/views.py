@@ -11,13 +11,14 @@ from Auth.serlaizers import UserCompanySerializer,UserStudentSerializer
 from Auth import permissions
 from rest_framework.permissions import IsAuthenticated
 from Auth import tasks as tsk
-
+from redis import cache
 from drf_yasg.utils import swagger_auto_schema
 from . import documents
 from elasticsearch_dsl.query import Q as Query
 from drf_yasg import openapi
 from post.pagination import CustomPagination
-
+import numpy as np
+from Auth.models import User
 # Create your views here.
 class applications(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
@@ -87,12 +88,11 @@ class applications(APIView):
                       email for email in team.students.values_list('email', flat=True)
                       if email != request.user.email
                        ]
-                 ser=serializer.application_serializer(data=data)
-                 if ser.is_valid():
-                      ser.save(team=team)
-                      ser.instance.acceptedby.add(user)
-                      post.applications.add(ser.data['id'])
-                      tsk.sendemail.delay(
+                 for email in student_emails:
+                     c=np.random.randint()
+                     cache.set(f"{email}_{ser.data['id']}",c, timeout=60*60*48)
+                     cache.set(f"reverse:{c}",f"{email}_{ser.data['id']}", timeout=60*60*48)
+                     tsk.sendemail.delay(
     message=(
         "You have been invited to participate in <strong>'{request_title}'</strong>, "
         "a {request_type} that requires team approval.<br><br>"
@@ -101,10 +101,29 @@ class applications(APIView):
         "- <strong>Description:</strong> {request_description}<br>"
         "- <strong>Requested By:</strong> {request_creator}<br>"
         "- <strong>Approval Needed By:</strong> {deadline_date}<br><br>"
-        "To accept the request, please click the link below:<br><br>"
-        "<a href='http://172.20.48.1:8000/app/{request_id}/accept/' "
-        "style='background-color:#007bff; color:white; padding:10px 15px; text-decoration:none; "
-        "border-radius:5px;'>Accept Request</a><br><br>"
+        "To accept the request, please click the button below:<br><br>"
+        "<button onclick='acceptRequest()' "
+        "style='background-color:#007bff; color:white; padding:10px 15px; border:none; "
+        "border-radius:5px; cursor:pointer;'>Accept Request</button><br><br>"
+        "<script>"
+        "function acceptRequest() {{"
+        "  fetch('http://172.20.48.1:8000/app/{request_id}/accept/', {{"
+        "    method: 'POST',"
+        "    headers: {{"
+        "      'Content-Type': 'application/json',"
+        "      'Authorization': 'Bearer ' + localStorage.getItem('token')"
+        "    }}"
+        "  }}).then(response => {{"
+        "    if (response.ok) {{"
+        "      alert('Request accepted successfully!');"
+        "    }} else {{"
+        "      alert('Failed to accept request. Please try again.');"
+        "    }}"
+        "  }}).catch(error => {{"
+        "    alert('Error: ' + error);"
+        "  }});"
+        "}}"
+        "</script><br><br>"
         "If you do not take action, the request will remain pending until all team members respond.<br><br>"
         "If you have any questions, feel free to reach out.<br><br>"
         "Best regards,<br>"
@@ -116,13 +135,18 @@ class applications(APIView):
         request_description=post.description,
         request_creator=team.name,
         deadline_date=post.enddate,
-        request_id=ser.data['id']  
+        request_id=c
     ),
     subject="Action Required: Approve Request for Internship/Challenge",
-    receipnt=student_emails,
+    receipnt=[email],
     title="Request Approval Needed",
     user='moo'
 )
+                 ser=serializer.application_serializer(data=data)
+                 if ser.is_valid():
+                      ser.save(team=team)
+                      ser.instance.acceptedby.add(user)
+                      post.applications.add(ser.data['id'])
                  return Response(ser.data)
              else :
                 if post.applications.filter(student=user).exists():
@@ -178,7 +202,6 @@ class accept_application(APIView):
             return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
 
 class accept_application(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsStudent]
     @swagger_auto_schema(
         operation_description="Accept a team application. This endpoint allows team members to approve an application submitted on behalf of their team.",
         manual_parameters=[
@@ -201,11 +224,15 @@ class accept_application(APIView):
         },
         tags=['Applications']
     )
-    def post(self,request,id):
-        user=request.user
+    def post(self,request,id,):
         try:
-            app=Application.objects.get(id=id)
+            c=cache.get(f"reverse:{id}")
+            if not cache.get(f"reverse:{id}"):
+                return Response({"this link is expired"},status=status.HTTP_400_BAD_REQUEST)
+            app=Application.objects.get(id=c.split('_')[1])
             op=app.opportunities.all().first()
+            email=c.split('_')[0]
+            user=User.objects.get(email=email)
             app.acceptedby.add(user)
             if app.acceptedby.count()==app.team.students.count():
                 app.approve=True
@@ -448,7 +475,7 @@ class choose_app(APIView):
          for each in app:
              if each.team:
                  for each1 in each.team.students.all():
-                     each1.student.experience+=[{'title':post.title,'company':user.name,'start':post.startdate,'end':post.enddate}]
+                     each1.student.experience+=[{'title':post.title,'company':user.name,'start':str(post.startdate),'end':str(post.enddate)}]
                      each1.student.save()
              else :
                  each.student.student.experience+=[{'title':post.title,'company':user.name,'start':post.startdate,'end':post.enddate}]
