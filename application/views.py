@@ -400,10 +400,8 @@ class choose_app(APIView):
         try:
          post=Opportunity.objects.get(id=id,company=user)
          all=post.applications.all()
-         all.update(status='rejected')
          app=post.applications.filter(id__in=ids)
          app.update(status='accepted')
-         post.status='closed'
          post.save()
          ser=serializer.application_serializer(app,many=True)
          return Response(ser.data)
