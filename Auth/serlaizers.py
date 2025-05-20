@@ -27,7 +27,11 @@ class atachementser(serializers.Serializer):
    name=serializers.CharField()
    link=serializers.URLField()
    created_at=serializers.DateTimeField()
-
+class experienceSerializer(serializers.Serializer):
+    title = serializers.CharField()
+    company = serializers.CharField()
+    start = serializers.CharField()
+    end = serializers.CharField()
 class StudentSerializer(serializers.ModelSerializer):
   skills =serializers.ListField(
      child=serializers.JSONField(),
@@ -36,7 +40,7 @@ class StudentSerializer(serializers.ModelSerializer):
   cv=serializers.JSONField(required=False)
   education = EducationSerializer(many=True, required=False)
   experience=serializers.ListField(
-      child=serializers.CharField(),
+      child=experienceSerializer(),
       required=False
   )
   class Meta:
@@ -86,7 +90,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
         user.save()
         return user
   def update(self, instance, validated_data):
-        company_data = validated_data.pop('company', None)
+        company_data = validated_data.pop('company', {})
         if 'pic' in validated_data:
             validated_data['profilepic']= tasks.upload_to_supabase(validated_data.pop('pic'),instance.name)
         instance = super().update(instance, validated_data)
@@ -96,7 +100,7 @@ class UserCompanySerializer(serializers.ModelSerializer):
                 company_serializer = CompanySerializer(
                     instance=company_instance,
                     data=company_data,
-                    partial=self.partial  
+                    partial=self.partial 
                 )
                 company_serializer.is_valid(raise_exception=True)
                 companyvar = company_serializer.save()

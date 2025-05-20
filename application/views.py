@@ -293,8 +293,12 @@ class application_crud(APIView):
     )
     def get(self,request):
         user=request.user
+        team=request.query_params.get('team')
         try:
-            app=Application.objects.filter(Q(student=user)|Q(team__students=user))
+            if team:
+                app=Application.objects.filter(team__id=team)
+            else:
+                app=Application.objects.filter(Q(student=user)|Q(team__students=user))
             s=[]
             for each in app :
              se=serializer.application_serializer(each)
@@ -402,6 +406,14 @@ class choose_app(APIView):
          all=post.applications.all()
          app=post.applications.filter(id__in=ids)
          app.update(status='accepted')
+         for each in app:
+             if each.team:
+                 for each1 in each.team.students.all():
+                     each1.student.experience+=[{'title':post.title,'company':user.name,'start':post.startdate,'end':post.enddate}]
+                     each1.student.save()
+             else :
+                 each.student.student.experience+=[{'title':post.title,'company':user.name,'start':post.startdate,'end':post.enddate}]
+                 each.student.student.save()
          post.save()
          ser=serializer.application_serializer(app,many=True)
          return Response(ser.data)
