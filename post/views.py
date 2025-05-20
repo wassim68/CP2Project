@@ -24,23 +24,18 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 
-@swagger_auto_schema(
+
+
+class opportunity_crud(APIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = [CustomPagination]
+
+    @swagger_auto_schema(
     operation_description="Get all opportunities. For companies, this returns only their own opportunities. For other users, this returns all opportunities.",
     manual_parameters=[
         openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
     ],
-    request_body=openapi.Schema(
-        type=openapi.TYPE_OBJECT,
-        properties={
-            'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-            'title': openapi.Schema(type=openapi.TYPE_STRING),
-            'description': openapi.Schema(type=openapi.TYPE_STRING),
-            'Type': openapi.Schema(type=openapi.TYPE_STRING),
-            'category': openapi.Schema(type=openapi.TYPE_STRING),
-            'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
-            'worktype': openapi.Schema(type=openapi.TYPE_STRING),
-        }
-    ),
+    
     responses={
         200: openapi.Response(description="Operation successful"),
         201: openapi.Response(description="Created successfully"),
@@ -49,23 +44,16 @@ from django.utils import timezone
         401: 'Unauthorized',
         403: 'Forbidden',
         404: 'Not found'
-    }
-)
-class opportunity_crud(APIView):
-    permission_classes = [IsAuthenticated]
-    pagination_class = [CustomPagination]
-
+    })
     def get(self,request):
         user = request.user
         if user.has_perm('Auth.company'):
             post = models.Opportunity.objects.filter(company=user)
-        else:
-            post = models.Opportunity.objects.all()
-
-        paginator = CustomPagination()
-        paginated_qs = paginator.paginate_queryset(post, request)
-        ser = serializer.opportunity_serializer(paginated_qs, many=True)
-        return Response(ser.data)
+            paginator = CustomPagination()
+            paginated_qs = paginator.paginate_queryset(post, request)
+            ser = serializer.opportunity_serializer(paginated_qs, many=True)
+            return Response(ser.data)
+        return Response({'you are not a company'}, status=status.HTTP_403_FORBIDDEN)
     
     @swagger_auto_schema(
         operation_description="Create a new opportunity. This endpoint allows companies to post new opportunities for students to apply.",
@@ -148,20 +136,10 @@ class opportunity_crud(APIView):
     @swagger_auto_schema(
         operation_description="Delete an opportunity. This endpoint allows companies to remove their posted opportunities.",
         manual_parameters=[
-            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING),
+            openapi.Parameter('id', openapi.IN_QUERY, description="Post ID", type=openapi.TYPE_INTEGER)
         ],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
-                'title': openapi.Schema(type=openapi.TYPE_STRING),
-                'description': openapi.Schema(type=openapi.TYPE_STRING),
-                'Type': openapi.Schema(type=openapi.TYPE_STRING),
-                'category': openapi.Schema(type=openapi.TYPE_STRING),
-                'skill_input': openapi.Schema(type=openapi.TYPE_STRING),
-                'worktype': openapi.Schema(type=openapi.TYPE_STRING),
-            }
-        ),
+        
         responses={
             200: openapi.Response(description="Operation successful"),
             201: openapi.Response(description="Created successfully"),
@@ -172,11 +150,11 @@ class opportunity_crud(APIView):
             404: 'Not found'
         }
     )
-    def delete(self, request):
+    def delete(self, request,id):
         user = request.user
         if user.has_perm('Auth.company'):
             try:
-                post = models.Opportunity.objects.get(id=request.data['id'], company=user)
+                post = models.Opportunity.objects.filter(id=id, company=user).first()
                 post.delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
             except models.Opportunity.DoesNotExist:

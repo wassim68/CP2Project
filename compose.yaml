@@ -5,7 +5,7 @@ services:
     build: .
     command: >
       bash -c "
-        yes | python manage.py makemigrations Auth post application &&
+        yes | python manage.py makemigrations Auth post application chat &&
         python manage.py migrate --noinput &&
         python manage.py create_superuser_if_not_exists &&
         yes | python manage.py search_index --rebuild &&

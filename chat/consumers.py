@@ -111,7 +111,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'reader_id' : self.user.id,
                     'read_time' : timezone.now().isoformat(),
                     'id' : id
-                
                 }
             )
 
@@ -190,8 +189,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
     @database_sync_to_async
     def get_chat(self, room_name):
-        from .models import Chat
-        return Chat.objects.filter(room_name=room_name).first()
+        from chat.models import Chat
+        chats = Chat.objects.filter(room_name=room_name)
+        if (chats.exists()) :
+            return chats.first()
+        else :
+            return None
+        
+
     @database_sync_to_async
     def get_message(self, id):
         from .models import Message
