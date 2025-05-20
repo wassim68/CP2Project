@@ -24,7 +24,6 @@ urlpatterns = [
     path('try',views.Try.as_view()),
     path('logout',views.logout.as_view()),
     
-    # Company Dashboard URLs
     path('company/dashboard/opportunities/', company_dashboard.CompanyDashboard.as_view()),
     path('company/dashboard/recent/', company_dashboard.CompanyDashboard.as_view()),
     path('company/dashboard/all-applications/', company_dashboard.CompanyDashboard.as_view()),
