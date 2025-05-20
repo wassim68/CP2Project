@@ -91,7 +91,6 @@ class CompanyDashboard(APIView):
                             'appliedDate': openapi.Schema(type=openapi.TYPE_STRING),
                             'status': openapi.Schema(type=openapi.TYPE_STRING),
                             'experience': openapi.Schema(type=openapi.TYPE_STRING),
-                            'education': openapi.Schema(type=openapi.TYPE_STRING)
                         }
                     )
                 )
@@ -113,7 +112,6 @@ class CompanyDashboard(APIView):
                 'appliedDate': app.createdate.isoformat(),
                 'status': app.status,
                 'experience': app.proposal,
-                'education': app.student.education if app.student else "Team Application"
             })
         return Response(data)
 
@@ -133,7 +131,6 @@ class CompanyDashboard(APIView):
                             'appliedDate': openapi.Schema(type=openapi.TYPE_STRING),
                             'status': openapi.Schema(type=openapi.TYPE_STRING),
                             'experience': openapi.Schema(type=openapi.TYPE_STRING),
-                            'education': openapi.Schema(type=openapi.TYPE_STRING)
                         }
                     )
                 )
@@ -155,7 +152,6 @@ class CompanyDashboard(APIView):
                 'appliedDate': app.createdate.isoformat(),
                 'status': app.status,
                 'experience': app.proposal,
-                'education': app.student.education if app.student else "Team Application"
             })
         return Response(data)
 
@@ -178,7 +174,6 @@ class CompanyDashboard(APIView):
                             'appliedDate': openapi.Schema(type=openapi.TYPE_STRING),
                             'status': openapi.Schema(type=openapi.TYPE_STRING),
                             'experience': openapi.Schema(type=openapi.TYPE_STRING),
-                            'education': openapi.Schema(type=openapi.TYPE_STRING)
                         }
                     )
                 )
@@ -199,7 +194,6 @@ class CompanyDashboard(APIView):
                     'appliedDate': app.createdate.isoformat(),
                     'status': app.status,
                     'experience': app.proposal,
-                    'education': app.student.education if app.student else "Team Application"
                 })
             return Response(data)
         except md.Opportunity.DoesNotExist:
