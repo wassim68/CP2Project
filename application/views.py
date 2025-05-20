@@ -138,43 +138,6 @@ class applications(APIView):
         except Opportunity.DoesNotExist:
             return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
 
-class accept_application(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsStudent]
-    @swagger_auto_schema(
-        operation_description="Accept a team application. This endpoint allows team members to approve an application submitted on behalf of their team.",
-        manual_parameters=[
-            openapi.Parameter('id', openapi.IN_PATH, description="Application ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
-        ],
-        responses={
-            200: openapi.Response(
-                description="Application accepted successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'message': openapi.Schema(type=openapi.TYPE_STRING)
-                    }
-                )
-            ),
-            401: openapi.Response(description="Unauthorized"),
-            403: openapi.Response(description="Forbidden"),
-            404: openapi.Response(description="Application not found")
-        },
-        tags=['Applications']
-    )
-    def post(self,request,id):
-        user=request.user
-        try:
-            app=Application.objects.get(id=id)
-            op=app.opportunities.all().first()
-            app.acceptedby.add(user)
-            if app.acceptedby.count()==app.team.students.count():
-                app.approve=True
-                app.status='under_review'
-            app.save()
-            return Response({'accepted'})
-        except Application.DoesNotExist:
-            return Response({"this application does'nt exist"},status=status.HTTP_404_NOT_FOUND)
 
 class accept_application(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
