@@ -117,7 +117,7 @@ class applications(APIView):
         request_description=post.description,
         request_creator=team.name,
         deadline_date=post.enddate,
-        request_id=ser.data['id']  
+        request_id=ser.data['id'] 
     ),
     subject="Action Required: Approve Request for Internship/Challenge",
     receipnt=student_emails,
@@ -173,7 +173,6 @@ class accept_application(APIView):
                 return render(request, 'application_choice.html', {
                     'error': 'Application not found'
                 })
-            op=app.opportunities.all().first()
             app.acceptedby.add(user)
             if app.acceptedby.count()==app.team.students.count():
                 app.approve=True
