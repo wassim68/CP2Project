@@ -74,7 +74,7 @@ class RoomName(APIView):
 
         chat = Chat.objects.filter(room_name=room_name).first()
         if chat is not None:
-            ser = ChatSerializer(chat,many=False)
+            ser = ChatSerializer(chat,many=False,context = {"user_id" : user.id})
             return Response({f"details" : f"chat already exist at [{room_name}] ","chat": ser.data},status=status.HTTP_201_CREATED)
         else:
             ser = ChatSerializer(data={
