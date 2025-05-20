@@ -47,8 +47,11 @@ class ChatSerializer(serializers.ModelSerializer):
 
    
     def get_unseen_count(self,obj):
-        count = obj.messages.filter(seen=False,receiver=self.context['user_id']).all().count()
-        return count
+        user_id = self.context['user_id']
+        if user_id is not None:
+            return obj.messages.filter(seen=False,receiver=user_id).all().count()
+        else :
+            return 0
 
     
 

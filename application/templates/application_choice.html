@@ -35,17 +35,46 @@
             opacity: 0.9;
             transform: scale(1.05);
         }
+        .error-message {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .back-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Application Decision</h1>
-        <p>Please choose whether to accept or reject this application:</p>
-        
-        <div class="button-group">
-            <a href="{% url 'accept_application' application.id %}" class="btn accept-btn">Accept Application</a>
-            <a href="{% url 'reject_application' application.id %}" class="btn reject-btn">Reject Application</a>
-        </div>
+        {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+            <a href="{% url 'application_crud' %}" class="back-btn">Back to Applications</a>
+        {% else %}
+            <h1>Application Decision</h1>
+            <p>Please choose whether to accept or reject this application:</p>
+            
+            <div class="button-group">
+                <a href="{% url 'accept_application' application.id %}" class="btn accept-btn">Accept Application</a>
+                <a href="{% url 'reject_application' application.id %}" class="btn reject-btn">Reject Application</a>
+            </div>
+        {% endif %}
     </div>
 </body>
 </html> 
