@@ -7,10 +7,11 @@ from post import serializer as sr
 from . import models
 from .models import Application
 from post.models import Opportunity,Team
-from Auth.serlaizers import UserCompanySerializer
+from Auth.serlaizers import UserCompanySerializer,UserStudentSerializer
 from Auth import permissions
 from rest_framework.permissions import IsAuthenticated
 from Auth import tasks as tsk
+
 from drf_yasg.utils import swagger_auto_schema
 from . import documents
 from elasticsearch_dsl.query import Q as Query
@@ -567,8 +568,24 @@ class search_applied(APIView):
 
         return paginator.get_paginated_response(ser.data)
 
-
-    
+class webapp(APIView):
+    permission_classes=[IsAuthenticated,permissions.IsCompany]
+    def get(self,request,id):
+        user=request.user
+        try:
+            app=models.Application.objects.filter(id=id,approve=True).first()
+            if app.team:
+                user=app.team
+                ser=serializer.application_serializer(app)
+                ser1=sr.team_serializer(user)
+                return Response({'application':ser.data,'team':ser1.data,'type':'team'})
+            else:
+                user=app.student
+                ser=serializer.application_serializer(app)
+                ser1=UserStudentSerializer(user)
+                return Response({'application':ser.data,'user':ser1.data,'type':'user'})
+        except Exception as e:
+            return Response(e,status=status.HTTP_404_NOT_FOUND)
 
 
 

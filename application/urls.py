@@ -10,4 +10,5 @@ urlpatterns = [
     path('choose/<int:id>/',views.choose_app.as_view()),
     path('search/',views.search.as_view()),
     path('search/applied',views.search_applied.as_view()),
+    path('web/<int:id>/',views.webapp.as_view()),
 ]
