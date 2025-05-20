@@ -248,7 +248,6 @@ class team_crud(APIView):
                             "inviter_id" : user.id ,
                             "receiver_id" : student.id,
                             "status" : "pending" 
-
                         }
                         invite_ser = serializer.TeamInviteSerializer(data = invite_data)
                         invite_ser.is_valid()
