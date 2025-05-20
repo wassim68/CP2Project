@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Accepted</title>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .success-icon {
+            color: #28a745;
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .message {
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .back-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✓</div>
+        <h1>Application Accepted</h1>
+        <p class="message">The application has been successfully accepted.</p>
+        <a href="{% url 'application_crud' %}" class="back-btn">Back to Applications</a>
+    </div>
+</body>
+</html> 

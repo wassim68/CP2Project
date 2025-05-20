@@ -85,6 +85,11 @@ class opportunity_crud(APIView):
     def post(self, request):
         user = request.user
         if user.has_perm('Auth.company'):
+            id = request.data.get('id')
+            opp = Opportunity.objects.filter(id=id,company=user).first()
+            if opp is None:
+                return Response({'post not found'}, status=status.HTTP_404_NOT_FOUND)
+
             ser = serializer.opportunity_serializer(data=request.data)
             if ser.is_valid():
                 ser.save(company=user)

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Decision</title>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .button-group {
+            margin-top: 30px;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .accept-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .reject-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Application Decision</h1>
+        <p>Please choose whether to accept or reject this application:</p>
+        
+        <div class="button-group">
+            <a href="{% url 'accept_application' application.id %}" class="btn accept-btn">Accept Application</a>
+            <a href="{% url 'reject_application' application.id %}" class="btn reject-btn">Reject Application</a>
+        </div>
+    </div>
+</body>
+</html> 
