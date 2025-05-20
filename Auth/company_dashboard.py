@@ -242,12 +242,12 @@ class CompanyDashboard(APIView):
         ).values('month').annotate(
             count=Count('id')
         ).order_by('month')
-
-        # Create a dictionary of months with default values
+        import locale
+        locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
         months = {}
         current = start_date
         while current <= end_date:
-            month_key = current.strftime('%Y-%m')
+            month_key = current.strftime('%b').lower(),
             months[month_key] = {
                 'month': current.strftime('%B %Y'),
                 'applications': 0,
