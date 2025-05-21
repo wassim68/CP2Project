@@ -602,7 +602,7 @@ class webapp(APIView):
     def get(self,request,id):
         user=request.user
         try:
-            app=models.Application.objects.filter(id=id,approve=True).first()
+            app=models.Application.objects.filter(id=id).first()
             if app.team:
                 user=app.team
                 ser=serializer.application_serializer(app)
