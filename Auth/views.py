@@ -304,13 +304,14 @@ class GoogleAuthenticate(APIView):
             return JsonResponse({"error": str(e)}, status=500)
 class googleauthforapp(APIView):
    def post(self, request):
-    token_id = request.POST.get("token_id")  # ⬅️ Client sends this directly
+    token_id = request.data.get("token_id")  # ⬅️ Client sends this directly
 
     if not token_id:
         return JsonResponse({"error": "ID token is required"}, status=400)
 
     try:
         decoded_token = None
+
         # Try both client IDs (Web and App)
         for client_id in [WEB_CLIENT_ID, APP_CLIENT_ID]:
             try:
@@ -320,7 +321,7 @@ class googleauthforapp(APIView):
                 continue
         if decoded_token is None:
             return JsonResponse({"error": "Invalid token"}, status=400)
-
+        print('decoded_token',decoded_token)
         email = decoded_token.get('email')
         name = decoded_token.get('name')
         picture = decoded_token.get('picture')
@@ -334,27 +335,26 @@ class googleauthforapp(APIView):
             defaults={
                 "email": email,
                 "name": name,
-                "password": token_id,  # Not safe in real apps; just for placeholder
+                "password": '123456789',  # Not safe in real apps; just for placeholder
                 "profilepic": {'link': picture, 'size': None,'created_at': datetime.utcnow().replace(tzinfo=pytz.utc).isoformat(),'name':'profilepic'},
                 "type": None
             }
         )
+        ser=serlaizers.UserStudentSerializer(user,data={'type':'Student'},partial=True)
+        if not ser.is_valid():
+          return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
+        ser.save()
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
-        return JsonResponse({
-            "message": "Login successful",
+        return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh),
-            "user": {
-                "email": email,
-                "name": name,
-                "profilepic": user.profilepic,
-                "id": user.id,
-                "type": user.type,
-            }
+            "user": ser.data
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+     
+                
 class addtype(APIView):
   permission_classes=[IsAuthenticated]
   @swagger_auto_schema(
@@ -769,15 +769,20 @@ class acc(APIView):
     elif user.student:
       education=data.get('education')
       skills=data.get('skills')
+      jsondata=data.get('json')
       dataentry=data.copy()
       if education :
-        education=json.loads(education)
-        dataentry['education']=education
+        if not jsondata:
+         education=json.loads(education)
+         dataentry['education']=education
+        else:
+            dataentry['education']=[education]
+            if not isinstance(education,list) :
+             return Response(status=status.HTTP_304_NOT_MODIFIED)
       if skills:  
-        skills=json.loads(skills)
+        if not jsondata:
+         skills=json.loads(skills)
         dataentry['skills']=skills
-        if not isinstance(education,list) :
-            return Response(status=status.HTTP_304_NOT_MODIFIED)
       print(dataentry)
       ser=serlaizers.UserStudentSerializer(user,data=dataentry,partial=True)
       if ser.is_valid():
