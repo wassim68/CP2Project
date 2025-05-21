@@ -27,6 +27,8 @@ from post.pagination import CustomPagination
 from post import serializer as post_serializers
 from django.http import HttpResponse
 from application import models as app_models
+
+
 class LinkedInAuthenticate(APIView):
     @swagger_auto_schema(
         operation_description="Authenticate a user using LinkedIn OAuth. This endpoint accepts a LinkedIn access token and returns user information along with JWT tokens for authentication.",
@@ -145,7 +147,7 @@ class LinkedInAuthenticate(APIView):
                     "email": email,
                     "name": name,  
                     'password': code,  
-                    'profilepic': picture
+                    'profilepic': {'link': picture, 'size': None,'created_at': datetime.utcnow().replace(tzinfo=pytz.utc).isoformat(),'name':'profilepic'},
                 }
             )
             refresh = RefreshToken.for_user(user)
@@ -156,7 +158,7 @@ class LinkedInAuthenticate(APIView):
                 "user": {
                     "email": email,
                     "name": name,
-                    "profilepic": picture,
+                    "profilepic": user.profilepic,
                     "id": user.id,
                     "type": user.type,
                 }       
@@ -283,7 +285,7 @@ class GoogleAuthenticate(APIView):
             if not email:
                 return JsonResponse({"error": "Email not found"}, status=400)
                 
-            user, _ = models.User.objects.get_or_create(email=email, defaults={"email": email, "name": name, 'password':code,'profilepic':picture,'type':None})
+            user, _ = models.User.objects.get_or_create(email=email, defaults={"email": email, "name": name, 'password':code,'profilepic':{'link': picture, 'size': None,'created_at': datetime.utcnow().replace(tzinfo=pytz.utc).isoformat(),'name':'profilepic'},'type':None})
             refresh = RefreshToken.for_user(user)
             
             return JsonResponse({
@@ -293,14 +295,66 @@ class GoogleAuthenticate(APIView):
                 "user": {
                     "email": email, 
                     "name": name, 
-                    "profilepic": picture,
+                    "profilepic": user.profilepic,
                     "id": user.id,
                     "type": user.type,
                 }
             })
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+class googleauthforapp(APIView):
+   def post(self, request):
+    token_id = request.POST.get("token_id")  # ⬅️ Client sends this directly
 
+    if not token_id:
+        return JsonResponse({"error": "ID token is required"}, status=400)
+
+    try:
+        decoded_token = None
+        # Try both client IDs (Web and App)
+        for client_id in [WEB_CLIENT_ID, APP_CLIENT_ID]:
+            try:
+                decoded_token = id_token.verify_oauth2_token(token_id, req.Request(), client_id)
+                break
+            except ValueError:
+                continue
+        if decoded_token is None:
+            return JsonResponse({"error": "Invalid token"}, status=400)
+
+        email = decoded_token.get('email')
+        name = decoded_token.get('name')
+        picture = decoded_token.get('picture')
+
+        if not email:
+            return JsonResponse({"error": "Email not found in token"}, status=400)
+
+        # Create or get user
+        user, _ = models.User.objects.get_or_create(
+            email=email,
+            defaults={
+                "email": email,
+                "name": name,
+                "password": token_id,  # Not safe in real apps; just for placeholder
+                "profilepic": {'link': picture, 'size': None,'created_at': datetime.utcnow().replace(tzinfo=pytz.utc).isoformat(),'name':'profilepic'},
+                "type": None
+            }
+        )
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        return JsonResponse({
+            "message": "Login successful",
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": {
+                "email": email,
+                "name": name,
+                "profilepic": user.profilepic,
+                "id": user.id,
+                "type": user.type,
+            }
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 class addtype(APIView):
   permission_classes=[IsAuthenticated]
   @swagger_auto_schema(

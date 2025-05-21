@@ -100,7 +100,8 @@ class CompanyDashboard(APIView):
     def getRecentApplications(self, request):
         opportunities = md.Opportunity.objects.filter(company=request.user)
         applications = app_models.Application.objects.filter(
-            opportunities__in=opportunities
+            opportunities__in=opportunities,
+            approve=True
         ).order_by('-createdate')[:5]
         
         data = []
@@ -140,7 +141,8 @@ class CompanyDashboard(APIView):
     def getAllApplicationsOfCompany(self, request):
         opportunities = md.Opportunity.objects.filter(company=request.user)
         applications = app_models.Application.objects.filter(
-            opportunities__in=opportunities
+            opportunities__in=opportunities,
+            approve=True
         ).order_by('-createdate')
         
         data = []
@@ -226,7 +228,8 @@ class CompanyDashboard(APIView):
         # Get monthly application counts
         applications = app_models.Application.objects.filter(
             opportunities__company=request.user,
-            createdate__gte=start_date
+            createdate__gte=start_date,
+            approve=True
         ).annotate(
             month=TruncMonth('createdate')
         ).values('month').annotate(
@@ -301,7 +304,8 @@ class CompanyDashboard(APIView):
 
         # Get total applications
         total_applications = app_models.Application.objects.filter(
-            opportunities__company=request.user
+            opportunities__company=request.user,
+            approve=True
         ).count()
         this_month_applications = app_models.Application.objects.filter(
             opportunities__company=request.user,
@@ -359,7 +363,8 @@ class CompanyDashboard(APIView):
     )
     def getApplicationStatusPieChartData(self, request):
         status_counts = app_models.Application.objects.filter(
-            opportunities__company=request.user
+            opportunities__company=request.user,
+            approve=True
         ).values('status').annotate(
             value=Count('id')
         ).order_by('status')
