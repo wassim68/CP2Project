@@ -49,11 +49,12 @@ class opportunity_crud(APIView):
         user = request.user
         if user.has_perm('Auth.company'):
             post = models.Opportunity.objects.filter(company=user)
-            paginator = CustomPagination()
-            paginated_qs = paginator.paginate_queryset(post, request)
-            ser = serializer.opportunity_serializer(paginated_qs, many=True)
-            return Response(ser.data)
-        return Response({'you are not a company'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            post = models.Opportunity.objects.order_by('-created_at')
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(post, request)
+        ser = serializer.opportunity_serializer(paginated_qs, many=True)
+        return Response(ser.data)
     
     @swagger_auto_schema(
         operation_description="Create a new opportunity. This endpoint allows companies to post new opportunities for students to apply.",
