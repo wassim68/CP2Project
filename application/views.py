@@ -11,7 +11,7 @@ from Auth.serlaizers import UserCompanySerializer,UserStudentSerializer
 from Auth import permissions
 from rest_framework.permissions import IsAuthenticated
 from Auth import tasks as tsk
-from redis import cache
+from django.core.cache import cache
 from drf_yasg.utils import swagger_auto_schema
 from . import documents
 from elasticsearch_dsl.query import Q as Query
@@ -20,7 +20,7 @@ from post.pagination import CustomPagination
 
 import numpy as np
 from Auth.models import User
-
+from django.shortcuts import render
 # Create your views here.
 class applications(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
@@ -86,51 +86,42 @@ class applications(APIView):
                  team=Team.objects.get(id=team)
                  if post.applications.filter(team__name=team.name).exists():
                      return Response({"You are already entre this "}, status=status.HTTP_400_BAD_REQUEST)
+                 ser=serializer.application_serializer(data=data)
+                 if not ser.is_valid():
+                     return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
+                 ser.save(team=team)
                  student_emails = [
                       email for email in team.students.values_list('email', flat=True)
                       if email != request.user.email
                        ]
                  for email in student_emails:
-                     c=np.random.randint()
+                     c=np.random.randint(100000,999999)
                      cache.set(f"{email}_{ser.data['id']}",c, timeout=60*60*48)
                      cache.set(f"reverse:{c}",f"{email}_{ser.data['id']}", timeout=60*60*48)
+
                      tsk.sendemail.delay(
     message=(
-        "You have been invited to participate in <strong>'{request_title}'</strong>, "
-        "a {request_type} that requires team approval.<br><br>"
-        "<strong>📌 Details:</strong><br>"
-        "- <strong>Title:</strong> {request_title}<br>"
-        "- <strong>Description:</strong> {request_description}<br>"
-        "- <strong>Requested By:</strong> {request_creator}<br>"
-        "- <strong>Approval Needed By:</strong> {deadline_date}<br><br>"
-        "To accept the request, please click the button below:<br><br>"
-        "<button onclick='acceptRequest()' "
-        "style='background-color:#007bff; color:white; padding:10px 15px; border:none; "
-        "border-radius:5px; cursor:pointer;'>Accept Request</button><br><br>"
-        "<script>"
-        "function acceptRequest() {{"
-        "  fetch('http://172.20.48.1:8000/app/{request_id}/accept/', {{"
-        "    method: 'POST',"
-        "    headers: {{"
-        "      'Content-Type': 'application/json',"
-        "      'Authorization': 'Bearer ' + localStorage.getItem('token')"
-        "    }}"
-        "  }}).then(response => {{"
-        "    if (response.ok) {{"
-        "      alert('Request accepted successfully!');"
-        "    }} else {{"
-        "      alert('Failed to accept request. Please try again.');"
-        "    }}"
-        "  }}).catch(error => {{"
-        "    alert('Error: ' + error);"
-        "  }});"
-        "}}"
-        "</script><br><br>"
-        "If you do not take action, the request will remain pending until all team members respond.<br><br>"
-        "If you have any questions, feel free to reach out.<br><br>"
-        "Best regards,<br>"
-        "<strong>The [Platform Name] Team</strong><br><br>"
-        "Need assistance? Contact us at <a href='mailto:support@email.com'>support@email.com</a>."
+    "You have been invited to participate in <strong>'{request_title}'</strong>, "
+    "a {request_type} that requires team approval.<br><br>"
+    "<strong>📌 Details:</strong><br>"
+    "- <strong>Title:</strong> {request_title}<br>"
+    "- <strong>Description:</strong> {request_description}<br>"
+    "- <strong>Requested By:</strong> {request_creator}<br>"
+    "- <strong>Approval Needed By:</strong> {deadline_date}<br><br>"
+    "To accept the request, please click the button below:<br><br>"
+    "<a href='http://10.130.28.236:8000/app/{request_id}/accept' "
+    "style='background-color:#64E2B7; color:white; padding:10px 15px; text-decoration:none; "
+    "border-radius:5px; font-weight:bold; display:inline-block;'>"
+    "Accept Request</a><br><br>"
+    "<a href='http://10.130.28.236:8000/app/{request_id}/reject' "
+    "style='background-color:#FE0000; color:white; padding:10px 15px; text-decoration:none; "
+    "border-radius:5px; font-weight:bold; display:inline-block;'>"
+    "Refuse Request</a><br><br>"
+    "If you do not take action, the request will remain pending until all team members respond.<br><br>"
+    "If you have any questions, feel free to reach out.<br><br>"
+    "Best regards,<br>"
+    "<strong>The [Platform Name] Team</strong><br><br>"
+    "Need assistance? Contact us at <a href='mailto:support@email.com'>support@email.com</a>."
     ).format( 
         request_title=post.title,
         request_type=post.Type,  
@@ -145,11 +136,8 @@ class applications(APIView):
     title="Request Approval Needed",
     user='moo'
 )
-                 ser=serializer.application_serializer(data=data)
-                 if ser.is_valid():
-                      ser.save(team=team)
-                      ser.instance.acceptedby.add(user)
-                      post.applications.add(ser.data['id'])
+                 ser.instance.acceptedby.add(user)
+                 post.applications.add(ser.data['id'])
                  return Response(ser.data)
              else :
                 if post.applications.filter(student=user).exists():
@@ -167,32 +155,9 @@ class applications(APIView):
             return Response({"post does'nt exist"},status=status.HTTP_404_NOT_FOUND)
 
 
-class accept_application(APIView):
-    @swagger_auto_schema(
-        operation_description="Accept a team application. This endpoint allows team members to approve an application submitted on behalf of their team.",
-        manual_parameters=[
-            openapi.Parameter('id', openapi.IN_PATH, description="Application ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
-        ],
-        responses={
-            200: openapi.Response(
-                description="Application accepted successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'message': openapi.Schema(type=openapi.TYPE_STRING)
-                    }
-                )
-            ),
-            401: openapi.Response(description="Unauthorized"),
-            403: openapi.Response(description="Forbidden"),
-            404: openapi.Response(description="Application not found")
-        },
-        tags=['Applications']
-    )
-    def post(self,request,id,):
-        try:
 
+def accept(request,id,):
+        try:
             c=cache.get(f"reverse:{id}")
             if not cache.get(f"reverse:{id}"):
                 return Response({"this link is expired"},status=status.HTTP_400_BAD_REQUEST)
@@ -200,13 +165,10 @@ class accept_application(APIView):
             op=app.opportunities.all().first()
             email=c.split('_')[0]
             user=User.objects.get(email=email)
-
-            app=Application.objects.get(id=id)
             if not app:
                 return render(request, 'application_choice.html', {
                     'error': 'Application not found'
                 })
-
             app.acceptedby.add(user)
             if app.acceptedby.count()==app.team.students.count():
                 app.approve=True
@@ -217,7 +179,25 @@ class accept_application(APIView):
             return render(request, 'application_choice.html', {
                 'error': 'Application not found'
             })
-
+def reject(request,id):
+        try:
+            c=cache.get(f"reverse:{id}")
+            if not cache.get(f"reverse:{id}"):
+                return Response({"this link is expired"},status=status.HTTP_400_BAD_REQUEST)
+            app=Application.objects.get(id=c.split('_')[1])
+            email=c.split('_')[0]
+            user=User.objects.get(email=email)
+            if not app:
+                return render(request, 'application_choice.html', {
+                    'error': 'Application not found'
+                })
+            app.acceptedby.remove(user)
+            app.save()
+            return render(request, 'application_rejected.html')
+        except Application.DoesNotExist:
+            return render(request, 'application_choice.html', {
+                'error': 'Application not found'
+            })
 class reject_application(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
     @swagger_auto_schema(
