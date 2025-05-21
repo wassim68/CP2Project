@@ -313,6 +313,46 @@ class team_crud(APIView):
                 return Response({'team does not exist'}, status=status.HTTP_404_NOT_FOUND)
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
+    @swagger_auto_schema(
+        operation_description="delete a team , only owners can delete the team",
+        manual_parameters=[
+            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'team_id': openapi.Schema(type=openapi.TYPE_INTEGER,description="id of the team to delete"),
+                'id': openapi.Schema(type=openapi.TYPE_INTEGER,description="alternative for team_id , only one is required")
+            }
+        ),
+        responses={
+            200: openapi.Response(description="Operation successful"),
+            400: 'Invalid data provided',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not found'
+        }
+    )
+
+    def delete(self, request):
+        user = request.user
+        data = request.data
+        if user.has_perm('Auth.student'):
+            team_id = data.get('team_id')
+            if team_id is None :
+                team_id = data.get('id')
+                if team_id is None:
+                    return Response({'team_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            team = user.owned_teams.filter(id=team_id).first()
+            if team is None:
+                return Response({'team not found , or must be a leader'}, status=status.HTTP_404_NOT_FOUND)
+            team.students.clear()
+            user.owned_teams.remove(team)
+            team.delete()
+            return Response({'team removed successfully'}, status=status.HTTP_200_OK)
+            
+        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+    
 class team_managing(APIView):
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
@@ -383,7 +423,7 @@ class team_managing(APIView):
             404: 'Not found'
         }
     )
-    def post(self, request):
+    def delete(self, request):
         user = request.user
         data = request.data
         if user.has_perm('Auth.student'):
@@ -413,42 +453,9 @@ class team_managing(APIView):
 
         return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
     
-    @swagger_auto_schema(
-        operation_description="delete a team , only owners can delete the team",
-        manual_parameters=[
-            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
-        ],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'team_id': openapi.Schema(type=openapi.TYPE_INTEGER)
-            }
-        ),
-        responses={
-            200: openapi.Response(description="Operation successful"),
-            400: 'Invalid data provided',
-            401: 'Unauthorized',
-            403: 'Forbidden',
-            404: 'Not found'
-        }
-    )
+    
 
-    def delete(self, request):
-        user = request.user
-        data = request.data
-        if user.has_perm('Auth.student'):
-            team_id = data.get('team_id')
-            if team_id is None :
-                return Response({'team_id not provided'}, status=status.HTTP_400_BAD_REQUEST)
-            team = user.owned_teams.filter(id=team_id).first()
-            if team is None:
-                return Response({'team not found , or must be a leader'}, status=status.HTTP_404_NOT_FOUND)
-            team.students.clear()
-            user.owned_teams.remove(team)
-            team.delete()
-            return Response({'team removed successfully'}, status=status.HTTP_200_OK)
-            
-        return Response({'you are not a student'}, status=status.HTTP_403_FORBIDDEN)
+    
 
 class InviterTeamInvites(APIView):
     permission_classes = [IsAuthenticated]
