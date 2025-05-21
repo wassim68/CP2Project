@@ -185,7 +185,7 @@ class CompanyDashboard(APIView):
     def getApplicationByPostId(self, request, postId):
         try:
             opportunity = md.Opportunity.objects.get(id=postId, company=request.user)
-            applications = opportunity.applications.all().order_by('-createdate')
+            applications = opportunity.applications.filter(approve=True).order_by('-createdate')
             
             data = []
             for app in applications:
