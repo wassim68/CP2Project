@@ -1208,12 +1208,6 @@ class post(APIView):
     user=request.user
     ser=sr.opportunity_serializer(user.student.savedposts,many=True)
     return Response(ser.data)
-class test(APIView):
-  permission_classes=[IsAuthenticated]
-  def post(self,request):
-    user=request.user
-    token=models.MCF.objects.get(user=user)
-    tasks.send_fcm_notification(token,'hi','hi')
 class notfication(APIView):
     permission_classes=[IsAuthenticated]
     @swagger_auto_schema(

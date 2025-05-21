@@ -17,7 +17,7 @@ from . import documents
 from elasticsearch_dsl.query import Q as Query
 from drf_yasg import openapi
 from post.pagination import CustomPagination
-
+from Auth import tasks as tk
 import numpy as np
 from Auth.models import User
 from django.shortcuts import render
@@ -140,6 +140,8 @@ class applications(APIView):
                  post.applications.add(ser.data['id'])
                  return Response(ser.data)
              else :
+                token=models.MCF.objects.get(user=user)
+                tk.send_fcm_notification(token,'hi','hi')
                 if post.applications.filter(student=user).exists():
                     return Response({"You have already applied for this opportunity"}, status=status.HTTP_400_BAD_REQUEST) 
                 ser=serializer.application_serializer(data=data)
