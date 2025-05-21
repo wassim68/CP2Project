@@ -607,6 +607,7 @@ class webapp(APIView):
                 user=app.team
                 ser=serializer.application_serializer(app)
                 ser1=sr.team_serializer(user)
+                ser1.data['members']=[{'name':each.name,'email':each.email} for each in user.students.all()]
                 return Response({'application':ser.data,'team':ser1.data,'type':'team'})
             else:
                 user=app.student
