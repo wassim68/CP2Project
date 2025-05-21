@@ -745,18 +745,14 @@ class dashboard(APIView):
         applications = Application.objects.filter(student=user.id)
         total = applications.count()
 
+
         
-        first_day_this_month = timezone.now().replace(day=1)
-
-
-        last_day_last_month = first_day_this_month - timedelta(days=1)
-
-
-        first_day_last_month = last_day_last_month.replace(day=1)
+        from dateutil.relativedelta import relativedelta
+        last_month = timezone.now() - relativedelta(months=1)
+  
 
         last_month_application = applications.filter(
-            createdate__gte = first_day_last_month,
-            createdate__lte = last_day_last_month
+            createdate__gte = last_month
         )
 
         last_month_count = last_month_application.count()
