@@ -714,11 +714,14 @@ class acc(APIView):
       return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     elif user.student:
       education=data.get('education')
+      skills=data.get('skills')
       dataentry=data.copy()
       if education :
         education=json.loads(education)
         dataentry['education']=education
-        print('eductaion4',dataentry)
+      if skills:  
+        skills=json.loads(skills)
+        dataentry['skills']=skills
         if not isinstance(education,list) :
             return Response(status=status.HTTP_304_NOT_MODIFIED)
       print(dataentry)
@@ -1208,12 +1211,6 @@ class post(APIView):
     user=request.user
     ser=sr.opportunity_serializer(user.student.savedposts,many=True)
     return Response(ser.data)
-class test(APIView):
-  permission_classes=[IsAuthenticated]
-  def post(self,request):
-    user=request.user
-    token=models.MCF.objects.get(user=user)
-    tasks.send_fcm_notification(token,'hi','hi')
 class notfication(APIView):
     permission_classes=[IsAuthenticated]
     @swagger_auto_schema(
