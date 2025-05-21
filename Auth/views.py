@@ -714,11 +714,14 @@ class acc(APIView):
       return Response(ser.errors,status=status.HTTP_400_BAD_REQUEST)
     elif user.student:
       education=data.get('education')
+      skills=data.get('skills')
       dataentry=data.copy()
       if education :
         education=json.loads(education)
         dataentry['education']=education
-        print('eductaion4',dataentry)
+      if skills:  
+        skills=json.loads(skills)
+        dataentry['skills']=skills
         if not isinstance(education,list) :
             return Response(status=status.HTTP_304_NOT_MODIFIED)
       print(dataentry)
