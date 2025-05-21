@@ -602,7 +602,7 @@ class webapp(APIView):
     def get(self,request,id):
         user=request.user
         try:
-            app=models.Application.objects.filter(id=id).first()
+            app=models.Application.objects.filter(id=id, approve=True).first()
             if app.team:
                 user=app.team
                 ser=serializer.application_serializer(app)
@@ -616,6 +616,20 @@ class webapp(APIView):
                 return Response({'application':ser.data,'user':ser1.data,'type':'user'})
         except Exception as e:
             return Response(e,status=status.HTTP_404_NOT_FOUND)
+class rejectapplicant(APIView):
+    def put(self,request,id):
+        ids=request.data.get('id',[])
+        user=request.user
+        try:
+         post=Opportunity.objects.get(id=id,company=user)
+         all=post.applications.all()
+         app=post.applications.filter(id__in=ids)
+         app.update(status='rejected')
+         app.save()
+         ser=serializer.application_serializer(app,many=True)
+         return Response(ser.data)
+        except Opportunity.DoesNotExist:
+            return Response({'post does not exist'},status=status.HTTP_404_NOT_FOUND)
 
 
 
