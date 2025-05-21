@@ -816,7 +816,7 @@ class team_by_id(APIView):
           404: 'team not found'
       }
   )
-    def get(self,request,id=None):
+    def get(self,request,id):
         if id is None :
             return Response({"details" : "id not provided"},status=status.HTTP_400_BAD_REQUEST)
         user = request.user
@@ -842,7 +842,7 @@ class opp_by_id(APIView):
           404: 'opportunity not found'
       }
   )
-    def get(self,request,id=None):
+    def get(self,request,id):
         if id is None :
             return Response({"details" : "id not provided"},status=status.HTTP_400_BAD_REQUEST)
         opps = Opportunity.objects.all()
@@ -867,7 +867,7 @@ class opp_by_company(APIView):
           404: 'comany not found'
       }
   )
-    def get(self,request,id=None):
+    def get(self,request,id):
         if id is None :
             return Response({"details" : "id not provided"},status=status.HTTP_400_BAD_REQUEST)
         company = User.objects.filter(id=id).first()
