@@ -140,8 +140,8 @@ class applications(APIView):
                  post.applications.add(ser.data['id'])
                  return Response(ser.data)
              else :
-                token=models.MCF.objects.get(user=user)
-                tk.send_fcm_notification(token,'hi','hi')
+                #token=models.MCF.objects.get(user=user)
+                #tk.send_fcm_notification(token,'hi','hi')
                 if post.applications.filter(student=user).exists():
                     return Response({"You have already applied for this opportunity"}, status=status.HTTP_400_BAD_REQUEST) 
                 ser=serializer.application_serializer(data=data)
