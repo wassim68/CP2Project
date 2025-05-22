@@ -200,46 +200,6 @@ def reject(request,id):
             return render(request, 'application_choice.html', {
                 'error': 'Application not found'
             })
-class reject_application(APIView):
-    permission_classes=[IsAuthenticated,permissions.IsStudent]
-    @swagger_auto_schema(
-        operation_description="Reject a team application. This endpoint allows team members to reject an application submitted on behalf of their team.",
-        manual_parameters=[
-            openapi.Parameter('id', openapi.IN_PATH, description="Application ID", type=openapi.TYPE_INTEGER),
-            openapi.Parameter('Authorization', openapi.IN_HEADER, description="JWT token", type=openapi.TYPE_STRING)
-        ],
-        responses={
-            200: openapi.Response(
-                description="Application rejected successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'message': openapi.Schema(type=openapi.TYPE_STRING)
-                    }
-                )
-            ),
-            401: openapi.Response(description="Unauthorized"),
-            403: openapi.Response(description="Forbidden"),
-            404: openapi.Response(description="Application not found")
-        },
-        tags=['Applications']
-    )
-    def post(self,request,id):
-        user=request.user
-        try:
-            app=Application.objects.get(id=id)
-            if not app:
-                return render(request, 'application_choice.html', {
-                    'error': 'Application not found'
-                })
-            if app.acceptedby.filter(name=user.name).exists():
-                app.acceptedby.remove(user)
-            app.save()
-            return render(request, 'application_rejected.html')
-        except Application.DoesNotExist:
-            return render(request, 'application_choice.html', {
-                'error': 'Application not found'
-            })
 
 class deleteapplication(APIView):
     permission_classes=[IsAuthenticated,permissions.IsStudent]
@@ -386,7 +346,13 @@ class company_app_management(APIView):
             post=Opportunity.objects.filter(company=user,id=id)
             app=models.Application.objects.filter(opportunities__in=post,approve=True)
             ser=serializer.application_serializer(app,many=True)
-            return Response(ser.data)
+            dataentry=ser.data
+            for each,i in dataentry,app:
+                if i.team:
+                    each['applicantName']=i.team.name
+                else :
+                    each['applicantName']=i.student.name
+            return Response(dataentry)
         except Exception as e:
             return Response(e,status=status.HTTP_404_NOT_FOUND)
 
@@ -603,20 +569,22 @@ class webapp(APIView):
         user=request.user
         try:
             app=models.Application.objects.filter(id=id, approve=True).first()
+            opp=Opportunity.objects.filter(applications=app).first()
             if app.team:
                 user=app.team
                 ser=serializer.application_serializer(app)
                 ser1=sr.team_serializer(user)
                 ser1.data['members']=[{'name':each.name,'email':each.email} for each in user.students.all()]
-                return Response({'application':ser.data,'team':ser1.data,'type':'team'})
+                return Response({'application':ser.data,'team':ser1.data,'type':'team','post_id':opp.id})
             else:
                 user=app.student
                 ser=serializer.application_serializer(app)
                 ser1=UserStudentSerializer(user)
-                return Response({'application':ser.data,'user':ser1.data,'type':'user'})
+                return Response({'application':ser.data,'user':ser1.data,'type':'user','post_id':opp.id})
         except Exception as e:
             return Response(e,status=status.HTTP_404_NOT_FOUND)
 class rejectapplicant(APIView):
+    permission_classes=[IsAuthenticated,permissions.IsCompany]
     def put(self,request,id):
         ids=request.data.get('id',[])
         user=request.user
@@ -625,7 +593,6 @@ class rejectapplicant(APIView):
          all=post.applications.all()
          app=post.applications.filter(id__in=ids)
          app.update(status='rejected')
-         app.save()
          ser=serializer.application_serializer(app,many=True)
          return Response(ser.data)
         except Opportunity.DoesNotExist:
