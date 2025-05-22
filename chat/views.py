@@ -156,3 +156,72 @@ class Messages(APIView):
         return Response({"details" : "updated" , "count" : count},status=status.HTTP_200_OK)        
                 
         
+class WebSocketChatDocs(APIView):
+    @swagger_auto_schema(
+        operation_description="""
+        ### WebSocket Chat API
+
+        **URL Format:**  
+        `ws://<your-domain>/ws/chat/<room_name>/?token=<JWT>`
+
+        - `room_name` must be in format: `room_<student_id>_<company_id>`
+        - JWT token must be valid and passed as a query parameter `token`.
+
+        **Events:**
+
+        1. **chat_message**
+        - Sent by client:
+        ```json
+        {
+          "type": "chat_message",
+          "message": "Hello!"
+        }
+        ```
+        - Received from server:
+        ```json
+        {
+          "type": "chat_message",
+          "data": {
+            "id": 1,
+            "message": "Hello!",
+            "sender_name": "Alice",
+            "sender": 2,
+            "sent_time": "2025-05-22T14:34:00Z"
+          }
+        }
+        ```
+
+        2. **read_message**
+        - Sent by client:
+        ```json
+        {
+          "type": "read_message",
+          "id": 1
+        }
+        ```
+        - Received from server:
+        ```json
+        {
+          "type": "read_message",
+          "data": {
+            "id": 1,
+            "reader_name": "Bob",
+            "reader_id": 3,
+            "read_time": "2025-05-22T14:35:00Z"
+          }
+        }
+        ```
+
+        **Disconnect Reasons:**
+        - Invalid or expired token
+        - Invalid room format
+        - Unauthorized user
+
+        """,
+        responses={200: openapi.Response("WebSocket Chat API Documentation"),
+                   500: openapi.Response("Error trying to connect")}
+    )
+    def get(self, request):
+        return Response({
+            "info": "This is a fake endpoint used to document the WebSocket API for Swagger UI."
+        })        

@@ -20,6 +20,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.user = await self.get_user(user_id)
         except (jwt.ExpiredSignatureError, jwt.DecodeError, AttributeError):
             await self.send(text_data=json.dumps({
+            'type' :'error',   
             'status': 'disconnected',
             'message': 'Token invalid or expired. Please log in again.'
             }))
@@ -37,6 +38,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         parts = self.room_name.split('_')
         if len(parts) != 3:
             await self.send(text_data=json.dumps({
+            'type' :'error', 
             'status': 'disconnected',
             'message': 'You have been disconnected , room name is not valid , correct form is [room_student-id_company-id]'
             }))
@@ -45,6 +47,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if await self.get_chat(self.room_name) is None:
             await self.send(text_data=json.dumps({
+            'type' :'error',     
             'status': 'disconnected',
             'message': 'You have been disconnected , room name doesnt exist , create chat at post chat/?user_id='
             }))
@@ -57,6 +60,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if not (self.user_type=='student' and self.user.id == self.student_id or self.user_type=='company' and self.user.id == self.company_id) :
             await self.send(text_data=json.dumps({
+            'type' :'error',     
             'status': 'disconnected',
             'message': 'you cant connect to this chat'
             }))
@@ -85,9 +89,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
 
         data = json.loads(text_data)
-        type = data['type']
+        type = data.get('type')
         if type == 'chat_message':
-            message = data['message']
+            message = data.get('message')
             id = await self.save_message(message)
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -102,7 +106,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
         elif type == 'read_message' :
-            id = data['id']
+            id = data.get('id')
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -167,10 +171,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             payload = jwt.decode(
                 token,
-                settings.SECRET_KEY,  # Or the JWT secret key if different
+                settings.SECRET_KEY,  
                 algorithms=["HS256"]
             )
-            # Check for expiration date or other validation
+            
             if "exp" in payload and payload["exp"] < datetime.utcnow().timestamp():
                 raise jwt.ExpiredSignatureError("Token has expired")
             return payload
